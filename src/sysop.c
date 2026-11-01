@@ -19,6 +19,8 @@
 #define SAVMSC  0x58
 #define LMARGN  0x52
 #define CH      0x2FC
+#define KBCODE  0xD209
+#define SKSTAT  0xD20F
 #define ESC     0x1B
 #define PAGE_SECONDS 30
 
@@ -123,10 +125,25 @@ static int test_key(void)
 }
 #endif
 
+/* SIO masks the keyboard IRQ, and FujiNet is polled all the time: a key pressed during
+   an SIO call never reaches CH. If a key is down that the OS did not take, fetch it from
+   POKEY ourselves (once per press). */
 int sysop_key(void)
 {
-    if (PEEK(CH) != 0xFF)
+    static uint8_t held;
+    uint8_t down = !(PEEK(SKSTAT) & 4);
+
+    if (PEEK(CH) != 0xFF) {
+        held = down;
         return cgetc();
+    }
+    if (!down)
+        held = 0;
+    else if (!held) {
+        held = 1;
+        POKE(CH, PEEK(KBCODE));
+        return cgetc();
+    }
 #ifdef TESTKEYS
     return test_key();
 #else

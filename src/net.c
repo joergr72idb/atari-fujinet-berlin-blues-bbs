@@ -1,5 +1,6 @@
 /* Caller connection over FujiNet: TCP listener on port 6502, buffered I/O. */
 #include <string.h>
+#include <time.h>
 #include "fujinet-network.h"
 #include "net.h"
 
@@ -13,6 +14,10 @@ static uint8_t txbuf[128];
 static uint8_t txlen;
 static uint8_t iac;             /* bytes of an IAC sequence still to skip */
 static uint8_t gone;
+static clock_t last_poll;
+
+/* Polls that find nothing are spaced out: every SIO call blocks the sysop's keyboard. */
+#define POLL_TICKS  (CLOCKS_PER_SEC / 8)
 
 uint8_t net_listen(void)
 {
@@ -26,6 +31,9 @@ uint8_t net_ringing(void)
     uint16_t bw;
     uint8_t conn, err;
 
+    if (clock() - last_poll < POLL_TICKS * 2)
+        return 0;
+    last_poll = clock();
     return network_status(LISTEN, &bw, &conn, &err) == FN_ERR_OK && conn;
 }
 
@@ -49,12 +57,16 @@ static uint8_t fill(void)
     uint8_t conn, err;
     int16_t n;
 
+    if (clock() - last_poll < POLL_TICKS)
+        return 0;
     if (network_status(LISTEN, &bw, &conn, &err) != FN_ERR_OK || !conn) {
         gone = 1;
         return 0;
     }
-    if (!bw)
+    if (!bw) {
+        last_poll = clock();
         return 0;
+    }
     n = network_read_nb(LISTEN, rxbuf, bw < sizeof rxbuf ? bw : sizeof rxbuf);
     if (n <= 0)
         return 0;
