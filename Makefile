@@ -51,7 +51,7 @@ run: $(XEX) nohub
 	-@pkill -x atari800; pkill -x fujinet; while pgrep -x fujinet >/dev/null; do sleep 1; done
 	@ln -sfn ../../sd $(FUJINET)/SD             # your data (tests use build/testsd)
 	@$(MAKE) -s fujinet
-	$(ATARI800) -config atari800.cfg -xl -netsio -run $(XEX)
+	$(ATARI800) -config atari800.cfg -no-kbdjoy0 -no-kbdjoy1 -xl -netsio -run $(XEX)   # W/A/S/D, keypad, Ctrl stay keys
 
 # fresh BBS data (users, stats, boards, mailboxes); PW = sysop password for the first start
 reset:
