@@ -19,7 +19,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | 3 | Menu tree from `menus.txt`, boards (read/write/delete, new messages) | ✔ 2026-11-01 |
 | 4 | Personal messages (PMsg), "Msg an Sysop" also for not yet approved users | ✔ 2026-11-01 |
 | 5 | Sysop console (status line, keys C/K/A/L/Q) + chat, **paging signal when a caller pages the sysop** | ✔ 2026-11-01 |
-| 6 | 24/7 hardening, FRITZ!Box port forward + DynDNS, go-live | |
+| 6 | 24/7 hardening, ER605 port forward + DynDNS, go-live | port forward + online test ✔ 2026-11-01, hardening open |
 
 ## Try it locally
 
@@ -32,6 +32,19 @@ telnet localhost 6502        # in a second terminal: call the BBS
 In the emulator window you are the sysop (keys A/C/K/L/Q, see Phase 5). Callers: RETURN, then `1` for PC.
 Log in as `SYSOP` with your password, or register a new user and approve it as SYSOP (menu 8 → 9).
 FujiNet-PC's web UI: http://localhost:8000. Stop everything: close the window, `make stop`.
+
+## Online (emulator on the dev box)
+
+Running from `make run` on the dev box (LAN `<LAN-IP>`, `eno1` MAC `<MAC>`), reachable from
+the internet via the existing DynDNS name, port 6502. Tested from a phone on mobile data 2026-11-01.
+
+- **ER605:** DHCP address reservation MAC → `<LAN-IP>`; NAT virtual server WAN TCP 6502 → `<LAN-IP>:6502`.
+  DrayTek Vigor in front as modem (bridge), Telekom native IPv4.
+- **Box:** `sudo ufw allow 6502/tcp`.
+- **Never forward or open 8000** – FujiNet-PC's web UI listens on all interfaces without login.
+- Test from outside the LAN (mobile data); from inside, the DynDNS name depends on NAT loopback.
+- Before handing out the address: change the sysop password (menu 3). Until phase 6 hardening is done, watch for
+  hangs after dropped calls / a missing listener – restart with `make run`.
 
 ## Make targets
 
