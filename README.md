@@ -21,13 +21,26 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | 5 | Sysop console (status line, keys C/K/A/L/Q) + chat, **paging signal when a caller pages the sysop** | ✔ 2026-11-01 |
 | 6 | 24/7 hardening, FRITZ!Box port forward + DynDNS, go-live | |
 
+## Try it locally
+
+```sh
+make reset PW=meinpasswort   # fresh BBS data, sysop password for the first start
+make run                     # FujiNet-PC + atari800 window with the BBS (sysop console)
+telnet localhost 6502        # in a second terminal: call the BBS
+```
+
+In the emulator window you are the sysop (keys A/C/K/L/Q, see Phase 5). Callers: RETURN, then `1` for PC.
+Log in as `SYSOP` with your password, or register a new user and approve it as SYSOP (menu 8 → 9).
+FujiNet-PC's web UI: http://localhost:8000. Stop everything: close the window, `make stop`.
+
 ## Make targets
 
 | Command | Does |
 |---------|------|
 | `make` | build `build/bbs.xex` (`PROG=spike` for the phase 0 spike) |
 | `make test` | also `build/bbs-test.xex`: test build that reads sysop keys from `bbs/testkeys.txt` – never deploy it |
-| `make run` | stop the Altirra NetSIO hub if running, start FujiNet-PC (SD = `sd/`), atari800 `-netsio -run` |
+| `make run` | stop the Altirra hub and old instances, fresh FujiNet-PC (SD = `sd/`), atari800 window with the BBS |
+| `make reset PW=…` | delete all BBS data in `sd/bbs/` and set the sysop password for the first start |
 | `make stop` | stop FujiNet-PC |
 | `tools/emu.sh build/bbs.xex [sec]` | fresh FujiNet-PC + headless atari800, waits until 6502 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
 | `tools/test_all.sh` | **all tests**, each on fresh data (deletes the BBS data in `sd/bbs/`!) – about 15 min |

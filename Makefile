@@ -12,7 +12,7 @@ PROG     ?= bbs
 XEX      := build/$(PROG).xex
 CFLAGS   := -t atari -O -I $(FNLIB) -g
 
-.PHONY: all test run boot fujinet nohub stop sd clean
+.PHONY: all test run reset boot fujinet nohub stop sd clean
 
 all: $(XEX)
 
@@ -46,8 +46,20 @@ nohub:
 stop:
 	-pkill -x fujinet
 
-run: $(XEX) nohub fujinet
+# always a fresh FujiNet-PC: it crashes when restarted with the BBS listener open
+run: $(XEX) nohub
+	-@pkill -x atari800; pkill -x fujinet; while pgrep -x fujinet >/dev/null; do sleep 1; done
+	@$(MAKE) -s fujinet
 	$(ATARI800) -config atari800.cfg -xl -netsio -run $(XEX)
+
+# fresh BBS data (users, stats, boards, mailboxes); PW = sysop password for the first start
+reset:
+	@test -n "$(PW)" || { echo "usage: make reset PW=<sysop password>"; exit 1; }
+	rm -f sd/bbs/users.dat sd/bbs/stats.dat sd/bbs/lastread.dat sd/bbs/b*.idx sd/bbs/b*.dat \
+	  sd/bbs/p*.idx sd/bbs/p*.dat sd/bbs/testkeys.* sd/bbs/spike.txt
+	@printf '%s\n' "$(PW)" > sd/bbs/sysop.txt
+	@echo "BBS data reset - SYSOP password for the first start is set"
+
 
 sd: $(XEX)
 	cp $(XEX) sd/$(PROG).xex
