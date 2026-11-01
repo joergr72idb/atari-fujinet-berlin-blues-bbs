@@ -1,10 +1,11 @@
 #!/bin/sh
-# Run all phase tests, each data-dependent one on fresh BBS data (sd/bbs/*.dat etc. are deleted!).
+# Run all phase tests, each data-dependent one on fresh test data in build/testsd (sd/ is not touched).
 cd "$(dirname "$0")/.."
 make -s test || exit 1
 fresh() {
-  rm -f sd/bbs/users.dat sd/bbs/stats.dat sd/bbs/lastread.dat sd/bbs/b*.idx sd/bbs/b*.dat sd/bbs/p*.idx sd/bbs/p*.dat sd/bbs/testkeys.*
-  printf 'geheim1\n' > sd/bbs/sysop.txt
+  T=build/testsd/bbs; mkdir -p $T
+  rm -f $T/users.dat $T/stats.dat $T/lastread.dat $T/b*.idx $T/b*.dat $T/p*.idx $T/p*.dat $T/testkeys.*
+  printf 'geheim1\n' > $T/sysop.txt
   tools/emu.sh "$1" 900 >/dev/null || exit 1
 }
 rc=0

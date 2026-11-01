@@ -5,7 +5,7 @@ import time, struct, datetime, pathlib
 from bbstest import Call
 
 today = datetime.datetime.now().strftime('%d.%m.%y')
-SD = pathlib.Path(__file__).resolve().parent.parent / 'sd' / 'bbs'
+SD = pathlib.Path(__file__).resolve().parent.parent / 'build' / 'testsd' / 'bbs'
 
 def dial(name, atari=False):
     c = Call(name)

@@ -15,8 +15,10 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
 - Sysop keys in tests: build `bbs-test.xex` (`make test`, `-DTESTKEYS`), write keys to `sd/bbs/testkeys.txt`
   (see `keys()` in test_phase5.py). Never deploy the test build.
 - Status line: sysop.c display list; any `GRAPHICS`/screen reopen would drop it.
+- Tests use their own SD folder `build/testsd` (tools/emu.sh re-points `opt/fujinet-pc/SD`); `make run` points it
+  back to `sd/`, which holds the user's own data – never delete or reset `sd/bbs/*` yourself.
 - All tests: `tools/test_all.sh` (fresh data each). Single: `tools/emu.sh build/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
-  listener), then `cd tools && python3 test_phase{1,2,3}.py` (2 and 3 need fresh data: delete `sd/bbs/{users,stats,lastread}.dat`,
-  `b*.idx`, `b*.dat`, write `sysop.txt` = `geheim1`; run 2 or 3 first, then 1) (module `bbstest.py`: Call.expect/send/page_until, petscii()).
+  listener), then `cd tools && python3 test_phase{1,2,3}.py` (2-5 need fresh data in `build/testsd/bbs`: delete `{users,stats,lastread}.dat`,
+  `b*`, `p*`, write `sysop.txt` = `geheim1` – test_all.sh does this) (module `bbstest.py`: Call.expect/send/page_until, petscii()).
   `VIDEO=1`/`AUDIO=1` record; last frame via ffmpeg `-sseof -0.2`.
 - Don't `pgrep -f`/`pkill -f` with a pattern that appears in your own command line (use `[x]yz` trick).

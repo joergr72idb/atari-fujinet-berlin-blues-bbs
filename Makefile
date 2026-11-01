@@ -49,6 +49,7 @@ stop:
 # always a fresh FujiNet-PC: it crashes when restarted with the BBS listener open
 run: $(XEX) nohub
 	-@pkill -x atari800; pkill -x fujinet; while pgrep -x fujinet >/dev/null; do sleep 1; done
+	@ln -sfn ../../sd $(FUJINET)/SD             # your data (tests use build/testsd)
 	@$(MAKE) -s fujinet
 	$(ATARI800) -config atari800.cfg -xl -netsio -run $(XEX)
 

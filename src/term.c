@@ -189,12 +189,15 @@ int term_poll(void)
 
     if (term_local)
         return -2;
-    c = net_getc();
-    if (c == NET_GONE)
-        return KEY_GONE;
-    if (c == NET_NONE)
-        return -2;
-    return map_in((uint8_t) c);
+    for (;;) {
+        c = net_getc();
+        if (c == NET_GONE)
+            return KEY_GONE;
+        if (c == NET_NONE)
+            return -2;
+        if ((c = map_in((uint8_t) c)) != -2)
+            return c;               /* skip ignored bytes (LF after CR, ...) */
+    }
 }
 
 void term_set_local(void)

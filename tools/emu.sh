@@ -1,13 +1,18 @@
 #!/bin/sh
-# Start FujiNet-PC + headless atari800 with an XEX, wait until the BBS listens on 6502.
+# Start FujiNet-PC (SD = build/testsd) + headless atari800 with an XEX, wait until the BBS listens on 6502.
 #   tools/emu.sh build/bbs.xex [seconds]      (emulator ends after [seconds], default 300)
 cd "$(dirname "$0")/.."
+# Tests run on their own SD folder (build/testsd) so `make run` data in sd/ is never touched.
+SDDIR=build/testsd
+mkdir -p $SDDIR/bbs
+cp sd/bbs/menus.txt $SDDIR/bbs/ && cp -r sd/bbs/texts $SDDIR/bbs/
 make -s nohub
 # Always a fresh FujiNet-PC: it crashes (heap corruption in fnTcpServer::stop) when it
 # shuts down or reboots with our TCP listener still open.
 pkill -x atari800 2>/dev/null; pkill -x fujinet 2>/dev/null
 rm -f build/rec*.avi build/rec*.wav     # atari800 won't overwrite ("All video files exist!")
 while pgrep -x atari800 >/dev/null || pgrep -x fujinet >/dev/null; do sleep 1; done
+ln -sfn ../../$SDDIR opt/fujinet-pc/SD
 make -s fujinet
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy nohup timeout "${2:-300}" \
   ../atari-dev/opt/atari800/bin/atari800 -config atari800.cfg -xl -netsio -run "$1" ${VIDEO:+-record-video -vname build/rec%d.avi} ${AUDIO:+-record-audio -aname build/rec%d.wav} \

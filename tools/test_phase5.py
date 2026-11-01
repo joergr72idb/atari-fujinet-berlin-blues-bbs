@@ -4,7 +4,7 @@ Runs against build/bbs-test.xex (sysop keys via sd/bbs/testkeys.txt). Needs fres
 import os, time, socket, struct, subprocess, pathlib
 from bbstest import Call
 
-SD = pathlib.Path(__file__).resolve().parent.parent / 'sd' / 'bbs'
+SD = pathlib.Path(__file__).resolve().parent.parent / 'build' / 'testsd' / 'bbs'
 
 def keys(data):
     """'Press' keys on the Atari (ATASCII; RETURN = \\x9b, ESC = \\x1b)."""

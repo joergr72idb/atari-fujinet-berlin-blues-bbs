@@ -158,34 +158,51 @@ char sysop_idle(void)
 
 /* ---- chat ------------------------------------------------------------ */
 
-/* Chat until the sysop presses ESC; 0 = caller gone. */
+/* Chat until the sysop presses ESC; 0 = caller gone.
+   The Atari keyboard holds only one key, and every SIO call to FujiNet takes a while:
+   while the sysop types, only the keyboard is read; the text goes out on RETURN or
+   after a pause, and the caller is polled at most 4 times a second. */
 static uint8_t chat(void)
 {
+    clock_t last_key = 0, last_net = 0;
     int k;
 
     term_paging = 0;
     term_puts("\n*** Der Sysop ist da - Chat! ***\n");
+    net_flush();
     puts("[Chat - Ende mit ESC]");
     for (;;) {
-        sysop_status();
         k = sysop_key();
         if (k == ESC)
             break;
-        if (k == 0x9B)
-            term_putc('\n');
-        else if (k == 0x7E)
-            term_putc(KEY_BS);
-        else if (k >= 0x20 && k < 0x7D)
-            term_putc((char) k);
-        if (k >= 0)
-            net_flush();
-        k = term_poll();
-        if (k == KEY_GONE) {
-            term_paging = 1;
-            return 0;
+        if (k >= 0) {
+            if (k == 0x9B)
+                term_putc('\n');
+            else if (k == 0x7E)
+                term_putc(KEY_BS);
+            else if (k >= 0x20 && k < 0x7D)
+                term_putc((char) k);
+            last_key = clock();
+            if (k == 0x9B)
+                net_flush();
+            continue;
         }
-        if (k >= 0)
+        if (clock() - last_key < CLOCKS_PER_SEC)
+            continue;                   /* sysop is typing: keyboard only */
+        net_flush();
+        if (clock() - last_net < CLOCKS_PER_SEC / 4)
+            continue;
+        last_net = clock();
+        sysop_status();
+        /* show everything the caller typed (one SIO poll, then from the buffer) */
+        while ((k = term_poll()) != -2) {
+            if (k == KEY_GONE) {
+                term_paging = 1;
+                return 0;
+            }
             term_putc((char) k);
+        }
+        net_flush();
     }
     term_puts("\n*** Chat beendet ***\n");
     net_flush();
