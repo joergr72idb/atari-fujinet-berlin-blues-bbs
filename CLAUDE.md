@@ -22,3 +22,4 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
   `b*`, `p*`, write `sysop.txt` = `geheim1` – test_all.sh does this) (module `bbstest.py`: Call.expect/send/page_until, petscii()).
   `VIDEO=1`/`AUDIO=1` record; last frame via ffmpeg `-sseof -0.2`.
 - Don't `pgrep -f`/`pkill -f` with a pattern that appears in your own command line (use `[x]yz` trick).
+- atari800 keyboard joysticks (W/A/S/D + left Ctrl, keypad) swallow those keys: `make run` passes `-no-kbdjoy0 -no-kbdjoy1`.
