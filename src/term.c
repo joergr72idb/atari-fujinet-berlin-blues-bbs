@@ -247,6 +247,7 @@ static void raw_line(const char *s)
 
 uint8_t term_detect(void)
 {
+    clock_t start;
     int c;
 
     term_mode = TERM_PC;
@@ -271,6 +272,18 @@ uint8_t term_detect(void)
         } while (c < '1' || c > '3');
         term_mode = c - '1';
         break;
+    }
+    /* A line-mode telnet client sends "1" + CR LF together: drop the line end,
+       or it would be read as an empty user name (= guest). */
+    start = clock();
+    while (clock() - start < CLOCKS_PER_SEC / 2) {
+        c = net_getc();
+        if (c == NET_GONE)
+            return 0;
+        if (c == NET_NONE)
+            continue;
+        if (c != 0x0D && c != 0x0A && c != 0x00 && c != 0x9B)
+            break;                  /* shouldn't happen: a real key, keep going */
     }
     last_cr = 0;
     net_telnet = (term_mode == TERM_PC);

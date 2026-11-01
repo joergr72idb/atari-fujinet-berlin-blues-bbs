@@ -79,12 +79,20 @@ c.expect('Nochmal'); enter(c, 'blues87')
 c.expect('Passwort geaendert.')
 c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)
 
+# 5b: line-mode telnet client (Linux telnet): "1" arrives together with CR LF
+c = Call('5b Zeilenmodus-Telnet')
+c.expect('DRUECKEN'); c.send('\r\n'); c.expect('1=PC'); c.send('1\r\n')
+c.expect('Username ==>'); enter(c, 'Joerg')
+c.expect('Passwort ==>'); enter(c, 'blues87')
+c.expect('Dein Status MITGLIED')
+c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)
+
 # 6: new password works, old one not
 c = dial('6 neues Passwort')
 c.expect('Username ==>'); enter(c, 'Joerg')
 c.expect('Passwort ==>'); enter(c, 'test1234'); c.expect('Falsch.')
 c.expect('Passwort ==>'); enter(c, 'blues87')
-c.expect('Anrufe       : 004')
+c.expect('Anrufe       : 005')
 c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close()
 
 # data on the SD card
@@ -97,7 +105,7 @@ for i in range(2):
 assert users[32+22] == 2, 'Joerg should be level 2'
 total, today_calls = struct.unpack('<IH', (SD / 'stats.dat').read_bytes()[:6])
 print('== stats.dat: total %d, today %d' % (total, today_calls))
-assert total == 6
+assert total == 7
 assert not (SD / 'sysop.txt').exists(), 'sysop.txt should be deleted after first start'
 print('== sysop.txt deleted after first start')
 print('ALL OK')
