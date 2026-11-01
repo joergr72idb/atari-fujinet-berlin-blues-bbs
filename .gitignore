@@ -1,3 +1,10 @@
 build/
 opt/
 sd/*.xex
+# BBS runtime data written by the live BBS (users, counters, boards, mailboxes) - stays on disk, not in git
+sd/bbs/*.dat
+sd/bbs/*.idx
+sd/bbs/sysop.txt
+sd/bbs/testkeys.*
+sd/bbs/spike.txt
+__pycache__/
