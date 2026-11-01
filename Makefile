@@ -8,7 +8,7 @@ ATARI800 := $(DEV)/opt/atari800/bin/atari800
 FUJINET  := $(CURDIR)/opt/fujinet-pc
 export CC65_HOME := $(DEV)/opt/cc65/share/cc65
 
-PROG     ?= spike
+PROG     ?= bbs
 XEX      := build/$(PROG).xex
 CFLAGS   := -t atari -O -I $(FNLIB) -g
 
@@ -16,9 +16,14 @@ CFLAGS   := -t atari -O -I $(FNLIB) -g
 
 all: $(XEX)
 
+BBS_SRC  := src/bbs.c src/net.c src/term.c src/sound.c
+
+build/bbs.xex: $(BBS_SRC) src/*.h | build
+	$(CL65) $(CFLAGS) -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
+	  -o $@ $(BBS_SRC) $(FNLIBA)
+
 build/spike.xex: src/spike.c | build
-	$(CL65) $(CFLAGS) -m build/spike.map -Ln build/spike.lbl -Wl --dbgfile,build/spike.dbg \
-	  -o $@ $^ $(FNLIBA)
+	$(CL65) $(CFLAGS) -o $@ $^ $(FNLIBA)
 
 build:
 	mkdir -p build

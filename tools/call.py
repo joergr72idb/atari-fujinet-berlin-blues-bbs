@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Scripted BBS call: connect, then alternate expect/send steps.
 
-usage: call.py [host:port] STEP...   STEP = "<text" (wait for text) or ">keys" (send, \\r = RETURN)
+usage: call.py [host:port] STEP...   STEP = "<text" (wait for text) or ">keys" (send);
+       both take escapes like \\r, \\x9b
 """
 import socket, sys, time
 
@@ -14,7 +15,7 @@ def main():
     got = b''
     for step in args:
         if step[0] == '<':
-            want = step[1:].encode()
+            want = step[1:].encode().decode('unicode_escape').encode('latin-1')
             end = time.time() + 30
             while want not in got and time.time() < end:
                 try:

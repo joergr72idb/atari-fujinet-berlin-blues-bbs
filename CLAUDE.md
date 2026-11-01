@@ -3,8 +3,11 @@
 Berlin Blues BBS for Atari XL + FujiNet (telnet port 6502). Plan, phases and FujiNet findings: README.md.
 Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
 
-- Strings sent to callers: CR/LF as `"\015\012"`, never `\n` (cc65 atari maps it to $9B).
+- Caller output goes through `term_puts()` with `'\n'` (= $9B) as line end; term.c converts. Raw `net_*` writes
+  need CR/LF as `"\015\012"` (cc65 atari maps `\n` to $9B).
+- Sysop screen output via stdio (`putchar`/`puts`, E: scrolls), not conio (no scrolling on Atari).
 - SD files: `N2:SD:///bbs/...` (three slashes). N1 = listener, N2 = files.
-- Headless test: start FujiNet-PC (`make nohub fujinet`), atari800 with SDL dummy drivers, `< /dev/null`, in the
-  background; wait for `ss -ltn | grep :6502`; then `tools/call.py`.
+- Headless test: `tools/emu.sh build/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
+  listener), then `cd tools && python3 test_phase1.py` (module `bbstest.py`: Call.expect/send/page_until, petscii()).
+  `VIDEO=1`/`AUDIO=1` record; last frame via ffmpeg `-sseof -0.2`.
 - Don't `pgrep -f`/`pkill -f` with a pattern that appears in your own command line (use `[x]yz` trick).
