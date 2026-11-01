@@ -1,0 +1,18 @@
+Kurz-Anleitung
+--------------
+Ziffer + RETURN waehlt einen Menuepunkt.
+*      = zurueck ins Hauptmenue
+RETURN = eine Ebene zurueck
+0      = auflegen (logoff)
+
+Abkuerzungen wie frueher: *42 springt
+ins Hauptmenue, dann Computer Box (4),
+dann Commodore 64 (2).
+
+In einem Brett:
+1 neue Msg, 2 alle, 3 Nr. lesen,
+4 schreiben (Ende mit '.' allein).
+
+Schreiben duerfen freigeschaltete
+Mitglieder. Neue Benutzer schaltet
+der Sysop frei.

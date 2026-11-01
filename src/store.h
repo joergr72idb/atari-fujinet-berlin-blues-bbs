@@ -16,6 +16,7 @@ uint8_t store_delete(const char *spec);
 /* Sequential reading: one open, then record after record. */
 uint8_t store_open(const char *spec);
 uint8_t store_next(void *buf, uint16_t len);   /* 0 at end of file */
+int  store_gets(char *buf, uint8_t max);        /* next text line (LF/CR stripped), -1 at end */
 void store_close(void);
 
 #endif

@@ -30,9 +30,9 @@ c.expect('Willkommen!')
 c.expect('Dein Status NEU (wartet auf Freigabe)')
 c.expect('Anrufe       : 001')
 c.expect('Letzter Anruf: -')
-c.expect('=>'); c.send('2')
+c.expect(' =>'); enter(c, '82')
 c.expect('SYSOP'); c.expect('Joerg')
-c.expect('=>'); c.send('0')
+c.expect(' =>'); enter(c, '0')
 c.expect('im System.'); c.close(); time.sleep(3)
 
 # 2: login from an Atari, first a wrong password
@@ -44,19 +44,19 @@ c.expect('Falsch.')
 c.expect('Passwort ==>'); enter(c, 'test1234', True)
 c.expect('Anrufe       : 002')
 c.expect('Letzter Anruf: ' + today)
-c.expect('=>'); c.send('0'); c.expect('im System.'); c.close(); time.sleep(3)
+c.expect(' =>'); enter(c, '0', True); c.expect('im System.'); c.close(); time.sleep(3)
 
 # 3: sysop approves Joerg
 c = dial('3 Sysop schaltet frei')
 c.expect('Username ==>'); enter(c, 'sysop')
 c.expect('Passwort ==>'); enter(c, 'geheim1')
 c.expect('Dein Status SYSOP')
-c.expect('9 Freischalten'); c.expect('=>'); c.send('9')
+c.expect(' =>'); enter(c, '8'); c.expect('9 Freischalten'); c.expect(' =>'); enter(c, '9')
 c.expect('  2 Joerg')
 c.expect('freischalten'); enter(c, '2')
 c.expect('Joerg ist freigeschaltet.')
 c.expect('freischalten'); enter(c, '')
-c.expect('=>'); c.send('0'); c.expect('im System.'); c.close(); time.sleep(3)
+c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)
 
 # 4: guest
 c = dial('4 Gast')
@@ -64,20 +64,20 @@ c.expect('Username ==>'); enter(c, '')
 c.expect('Dein Status GAST')
 c.expect('Anrufer  : 4 (heute 4)')
 c.expect('Zuletzt  : SYSOP')
-c.expect('=>'); c.send('9')                              # not offered to guests: ignored
-c.expect('=>'); c.send('0'); c.expect('im System.'); c.close(); time.sleep(3)
+c.expect(' =>'); enter(c, '89')                          # sysop item: not for guests
+c.expect('PMsg/Userverwaltung'); c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)
 
 # 5: Joerg is now a member and changes the password
 c = dial('5 Joerg ist Mitglied, aendert Passwort')
 c.expect('Username ==>'); enter(c, 'Joerg')
 c.expect('Passwort ==>'); enter(c, 'test1234')
 c.expect('Dein Status MITGLIED')
-c.expect('=>'); c.send('3')
+c.expect(' =>'); enter(c, '81')
 c.expect('Altes Passwort'); enter(c, 'test1234')
 c.expect('Neues Passwort'); enter(c, 'blues87')
 c.expect('Nochmal'); enter(c, 'blues87')
 c.expect('Passwort geaendert.')
-c.expect('=>'); c.send('0'); c.expect('im System.'); c.close(); time.sleep(3)
+c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)
 
 # 6: new password works, old one not
 c = dial('6 neues Passwort')
@@ -85,7 +85,7 @@ c.expect('Username ==>'); enter(c, 'Joerg')
 c.expect('Passwort ==>'); enter(c, 'test1234'); c.expect('Falsch.')
 c.expect('Passwort ==>'); enter(c, 'blues87')
 c.expect('Anrufe       : 004')
-c.expect('=>'); c.send('0'); c.expect('im System.'); c.close()
+c.expect(' =>'); enter(c, '0'); c.expect('im System.'); c.close()
 
 # data on the SD card
 users = (SD / 'users.dat').read_bytes()

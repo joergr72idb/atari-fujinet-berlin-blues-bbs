@@ -276,14 +276,22 @@ void user_status(void)
     term_puts("Sysop ist: abwesend\n");
 }
 
-void user_logoff(void)
+void user_online(char *buf)
 {
     unsigned long s = (clock() - online_since) / CLOCKS_PER_SEC;
+
+    sprintf(buf, "%lu:%02lu:%02lu", s / 3600, s / 60 % 60, s % 60);
+}
+
+void user_logoff(void)
+{
+    char t[12];
 
     clock_now();
     sprintf(line, "\nEs ist jetzt %02u:%02u:%02u\n", now[3], now[4], now[5]);
     term_puts(line);
-    sprintf(line, "Du warst %lu:%02lu:%02lu im System.\n\n", s / 3600, s / 60 % 60, s % 60);
+    user_online(t);
+    sprintf(line, "Du warst %s im System.\n\n", t);
     term_puts(line);
     term_puts("Bis zum naechsten Mal...\n");
 }

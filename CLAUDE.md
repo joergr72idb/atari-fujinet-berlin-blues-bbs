@@ -11,6 +11,7 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
 - Never use `"\n"`/`"\r\n"` to match bytes from files or the network (strcspn etc.) – in cc65 atari `"\n"` is $9B;
   use `"\015\012"`.
 - Headless test: `tools/emu.sh build/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
-  listener), then `cd tools && python3 test_phase1.py` / `test_phase2.py` (phase 2 needs fresh data, see README) (module `bbstest.py`: Call.expect/send/page_until, petscii()).
+  listener), then `cd tools && python3 test_phase{1,2,3}.py` (2 and 3 need fresh data: delete `sd/bbs/{users,stats,lastread}.dat`,
+  `b*.idx`, `b*.dat`, write `sysop.txt` = `geheim1`; run 2 or 3 first, then 1) (module `bbstest.py`: Call.expect/send/page_until, petscii()).
   `VIDEO=1`/`AUDIO=1` record; last frame via ffmpeg `-sseof -0.2`.
 - Don't `pgrep -f`/`pkill -f` with a pattern that appears in your own command line (use `[x]yz` trick).

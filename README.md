@@ -16,7 +16,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | 0 | Spike: TCP server on 6502, IAC filter, N:SD: write/append/seek | ✔ 2026-11-01 |
 | 1 | Terminal layer (ASCII/ATASCII/PETSCII, line editor, paging), ring sound on incoming call | ✔ 2026-11-01 |
 | 2 | Users + login, call counters ("Anrufer Nr.", per-user calls, System Status), **new users need sysop approval before they can write** | ✔ 2026-11-01 |
-| 3 | Boards (read/write, new messages) | |
+| 3 | Menu tree from `menus.txt`, boards (read/write/delete, new messages) | ✔ 2026-11-01 |
 | 4 | Personal messages | |
 | 5 | Sysop console + chat, **sound signal when a caller pages the sysop** | |
 | 6 | 24/7 hardening, FRITZ!Box port forward + DynDNS, go-live | |
@@ -30,6 +30,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | `make stop` | stop FujiNet-PC |
 | `tools/emu.sh build/bbs.xex [sec]` | fresh FujiNet-PC + headless atari800, waits until 6502 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
 | `cd tools && python3 test_phase1.py` | automated test calls: PC (ASCII/telnet), Atari (ATASCII), C64 (PETSCII) |
+| `cd tools && python3 test_phase3.py` | menus, chains, boards: write, new, read, approval rule, delete (needs fresh data) |
 | `cd tools && python3 test_phase2.py` | register, login, approval, guest, password change, counters (needs fresh `users.dat`/`stats.dat` and `sysop.txt` = `geheim1`) |
 | `tools/call.py '<text' '>keys\r' …` | ad-hoc scripted telnet call (expect/send steps) |
 
@@ -92,3 +93,28 @@ Data formats (little endian):
 |------|---------|
 | `users.dat` | 32-byte records, user no. = index + 1: name[16], pw hash u32 (FNV-1a of upper-case name + `:` + password), calls u16, level u8, flags u8, last call D,M,Y,h,m, 3 spare |
 | `stats.dat` | total calls u32, calls today u16, day D,M,Y, last caller[16] |
+
+## Menus + boards (Phase 3)
+
+**Menus** come from `bbs/menus.txt` (read at startup – after editing, restart the BBS). One item per line:
+`<menu> <key> <type> <arg> <level> <label>` – type `M` submenu, `B` board (1–16), `T` text file in
+`bbs/texts/`, `F` function (`status users passwd approve new chat`); level = minimum user level.
+Menu 0 is the Hauptmenue; a submenu's title is the label of the item that leads to it.
+
+Boards (2026-11-01): 1 Termine & Treffen · Schwarzes Brett: 2 Suche, 3 Biete, 4 Allgemeines ·
+Computer Box: 5 Atari XL/XE, 6 C64, 7 Schneider CPC, 8 Hardware & Loeten · 9 Kultur Brett · 10 Plauderecke.
+
+Navigation like 1987: prompt shows the time online (`0:01:01 =>`); digits + RETURN; chains like `*42`
+(Hauptmenue → Computer Box → C64) or `*24` (Termine → write); `*` = Hauptmenue, RETURN = back, `0` = logoff.
+In a board: 1 new, 2 all, 3 by number, 4 write (subject + up to 40 lines, `.` alone ends), 5 delete (sysop).
+After login: "Neue Msg: Termine & Treffen (1), Commodore 64 (1)"; Hauptmenue 7 reads all new messages.
+Writing needs level 2 (approved member); guests and new users only read.
+
+| File | Content |
+|------|---------|
+| `bNN.idx` | 48-byte headers, msg no. = index + 1: offset u32, len u16, from[16], date D,M,Y,h,m, flags u8 (1 = deleted), subject[20] |
+| `bNN.dat` | message texts back to back, lines end with LF |
+| `lastread.dat` | per user 16 × u16: highest message read per board (offset = (user no. − 1) × 32) |
+| `menus.txt`, `texts/*.txt` | menu tree and info texts, plain text |
+
+Limits: 40 lines per message; `store_size()` is 16 bit, so an `.idx` holds up to 1365 messages per board.

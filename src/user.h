@@ -39,6 +39,7 @@ void user_init(void);           /* first start: create users.dat with SYSOP */
 void stats_count_call(void);
 uint8_t user_login(void);       /* 0 = caller gone */
 void user_logoff(void);
+void user_online(char *buf);     /* time online as h:mm:ss */
 void user_status(void);         /* "Dein Status" + "System Status" screens */
 void user_list(void);
 void user_change_pw(void);
