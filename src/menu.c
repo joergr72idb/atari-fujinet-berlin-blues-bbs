@@ -3,7 +3,7 @@
 
    menus.txt, one item per line:  <menu> <key> <type> <arg> <level> <label>
      type M = submenu (arg = menu no.), B = board (arg = board no.),
-          T = text file in bbs/texts/, F = function (status, users, passwd, approve, new)
+          T = text file in bbs/texts/, F = function (status users passwd approve new pmwrite pmread sysop)
      level = minimum user level to see/use the item
    Menu 0 is the Hauptmenue; a submenu's title is the label of the item leading to it. */
 #include <stdio.h>
@@ -13,6 +13,7 @@
 #include "store.h"
 #include "user.h"
 #include "board.h"
+#include "pm.h"
 #include "menu.h"
 
 #define MENUS     BBS_DIR "menus.txt"
@@ -137,6 +138,9 @@ static void function(const char *f)
     else if (!strcmp(f, "passwd"))  user_change_pw();
     else if (!strcmp(f, "approve")) user_approve();
     else if (!strcmp(f, "new"))     board_new_all();
+    else if (!strcmp(f, "pmwrite")) pm_write();
+    else if (!strcmp(f, "pmread"))  pm_read();
+    else if (!strcmp(f, "sysop"))   pm_to_sysop();
     else                            term_puts("Kommt bald.\n");
 }
 

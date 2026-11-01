@@ -1,7 +1,8 @@
 # Berlin Blues menus - one item per line:
 # <menu> <key> <type> <arg> <level> <label>
 #   type: M submenu (arg = menu no.), B board (arg = board no. 1-16),
-#         T text file in bbs/texts/, F function: status users passwd approve new chat
+#         T text file in bbs/texts/,
+#         F function: status users passwd approve new pmwrite pmread sysop
 #   level: 0 everyone, 2 members, 5 sysop
 # Menu 0 = Hauptmenue. Labels max. 22 characters.
 0 1 M 1  0 Hilfe & Info's
@@ -12,7 +13,7 @@
 0 6 B 10 0 Plauderecke
 0 7 F new 0 Neue Msg lesen
 0 8 M 8  0 PMsg/Userverwaltung
-0 9 F chat 0 Msg an Sysop/Chat
+0 9 F sysop 0 Msg an Sysop/Chat
 1 1 T kurz.txt 0 Kurz-Anleitung
 1 2 F status 0 System Status
 1 3 T info.txt 0 Ueber die Box
@@ -23,6 +24,8 @@
 4 2 B 6  0 Commodore 64
 4 3 B 7  0 Schneider CPC
 4 4 B 8  0 Hardware & Loeten
-8 1 F passwd 1 Passwort aendern
-8 2 F users 0 Liste der Benutzer
+8 1 F pmwrite 1 Pers. Briefe schreiben
+8 2 F pmread 1 Pers. Briefe lesen
+8 3 F users 0 Liste der Benutzer
+8 4 F passwd 1 Passwort aendern
 8 9 F approve 5 Freischalten (Sysop)

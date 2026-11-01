@@ -19,7 +19,8 @@ typedef struct {                /* users.dat: fixed 32-byte records, user no. = 
     uint8_t  level;
     uint8_t  flags;
     uint8_t  last[5];           /* last call: D, M, Y, h, m */
-    uint8_t  spare[3];
+    uint16_t pm_read;           /* highest personal message read */
+    uint8_t  spare;
 } User;
 
 typedef struct {                /* stats.dat */
@@ -44,5 +45,7 @@ void user_status(void);         /* "Dein Status" + "System Status" screens */
 void user_list(void);
 void user_change_pw(void);
 void user_approve(void);        /* sysop: approve new users */
+uint16_t user_find(const char *name, char *canonical);   /* user no., 0 = unknown */
+void user_save(void);           /* write the caller's record back */
 
 #endif

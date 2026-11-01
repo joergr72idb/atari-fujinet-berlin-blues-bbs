@@ -92,6 +92,21 @@ static uint8_t save_user(uint16_t no, const User *rec)
     return store_put(USERS, (uint32_t) (no - 1) * sizeof(User), rec, sizeof(User));
 }
 
+uint16_t user_find(const char *name, char *canonical)
+{
+    uint16_t no = find_user(name);
+
+    if (no && canonical)
+        strcpy(canonical, u.name);
+    return no;
+}
+
+void user_save(void)
+{
+    if (user_no)
+        save_user(user_no, &user);
+}
+
 void user_init(void)
 {
     uint16_t n;

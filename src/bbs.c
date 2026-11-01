@@ -7,6 +7,7 @@
 #include "user.h"
 #include "board.h"
 #include "menu.h"
+#include "pm.h"
 
 static const char banner[] =
     "\n"
@@ -37,6 +38,7 @@ static void session(void)
         return;
     printf("[%s, Level %u]\n", user.name, user.level);
     user_status();
+    pm_login();
     board_login();
     menu_run();
 }

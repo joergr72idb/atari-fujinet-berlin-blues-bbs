@@ -1,5 +1,4 @@
-/* Message boards. Per board: bNN.idx = fixed 48-byte headers (msg no. = index + 1),
-   bNN.dat = message texts back to back, lines end with LF (readable on Linux).
+/* Message boards bNN (storage in msg.c).
    lastread.dat: per user 16 x u16 = highest message read in each board. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,37 +7,18 @@
 #include "store.h"
 #include "user.h"
 #include "menu.h"
+#include "msg.h"
 #include "board.h"
 
-#define LASTREAD   BBS_DIR "lastread.dat"
-#define MAX_LINES  40
-#define F_DELETED  0x01
+#define LASTREAD BBS_DIR "lastread.dat"
 
-typedef struct {
-    uint32_t offset;            /* in bNN.dat */
-    uint16_t len;
-    char     from[NAME_LEN + 1];
-    uint8_t  date[5];           /* D, M, Y, h, m */
-    uint8_t  flags;
-    char     subject[20];
-} Msg;
-
-static Msg m;
 static uint16_t lastread[MAX_BOARDS];
-static char idx[32], dat[32];
 static char line[41];
-static char text[1700];         /* one message: 40 lines x up to 39 chars + LF */
-
-static void files(uint8_t b)
-{
-    sprintf(idx, BBS_DIR "b%02u.idx", b);
-    sprintf(dat, BBS_DIR "b%02u.dat", b);
-}
 
 static uint16_t count(uint8_t b)
 {
-    files(b);
-    return store_size(idx) / sizeof(Msg);
+    msg_use('b', b);
+    return msg_count();
 }
 
 static void save_lastread(void)
@@ -86,36 +66,14 @@ void board_show(uint8_t b)
     term_puts("----------------------\n");
 }
 
-/* Show message no in board b (files() already set). */
-static void show(uint8_t b, uint16_t no)
-{
-    uint16_t len, i;
-
-    if (!store_get(idx, (uint32_t) (no - 1) * sizeof m, &m, sizeof m))
-        return;
-    sprintf(line, "\nMsg %u von %s", no, m.from);
-    term_puts(line);
-    sprintf(line, "  %02u.%02u.%02u %02u:%02u\n", m.date[0], m.date[1], m.date[2], m.date[3], m.date[4]);
-    term_puts(line);
-    if (m.flags & F_DELETED) {
-        term_puts("(geloescht)\n");
-    } else {
-        term_puts("Betreff: ");
-        term_puts(m.subject);
-        term_puts("\n----------------------\n");
-        len = m.len < sizeof text ? m.len : sizeof text;
-        if (store_get(dat, m.offset, text, len))
-            for (i = 0; i < len && !term_abort; ++i)
-                term_putc(text[i] == 0x0A ? '\n' : text[i]);
-    }
-    if (no > lastread[b - 1])
-        lastread[b - 1] = no;
-}
-
+/* msg_use() for board b is already set */
 static void read_range(uint8_t b, uint16_t from, uint16_t to)
 {
-    for (; from <= to && !term_abort; ++from)
-        show(b, from);
+    for (; from <= to && !term_abort; ++from) {
+        msg_show(from);
+        if (from > lastread[b - 1])
+            lastread[b - 1] = from;
+    }
     save_lastread();
     if (from <= to)
         term_puts("\n(abgebrochen)\n");
@@ -138,72 +96,25 @@ static uint16_t ask_no(uint16_t n)
 
 static void write_msg(uint8_t b)
 {
-    uint16_t n, len = 0;
-    uint8_t lines = 0;
-    int r;
+    int len;
+    uint16_t no;
 
     if (user.level < LVL_MEMBER) {
         term_puts(user_no ? "Du bist noch nicht freigeschaltet.\n"
                           : "Gaeste koennen nur lesen.\n");
         return;
     }
-    term_puts("Betreff ==>");
-    if (term_getline(m.subject, sizeof m.subject - 1, 0) <= 0)
+    if ((len = msg_compose(0)) <= 0)
         return;
-    term_puts("Text, max. 40 Zeilen. Ende: '.' allein\n");
-    for (;;) {
-        sprintf(line, "%02u:", lines + 1);
+    msg_use('b', b);
+    if ((no = msg_save(len)) != 0) {
+        sprintf(line, "Msg Nr. %u gespeichert.\n", no);
         term_puts(line);
-        r = term_getline(line, term_width > 40 ? 39 : term_width - 4, 0);
-        if (r == KEY_GONE)
-            return;
-        if (r == 1 && line[0] == '.')
-            break;
-        memcpy(text + len, line, r);
-        len += r;
-        text[len++] = 0x0A;
-        if (++lines == MAX_LINES) {
-            term_puts("(40 Zeilen voll)\n");
-            break;
-        }
-    }
-    if (!lines)
-        return;
-    term_puts("Speichern (J/N)? ");
-    r = term_getc();
-    if (r == KEY_GONE)
-        return;
-    term_putc('\n');
-    if (r != 'j' && r != 'J')
-        return;
-    /* the new text goes behind the last one */
-    n = count(b);
-    m.offset = 0;
-    if (n && store_get(idx, (uint32_t) (n - 1) * sizeof m, &m, sizeof m))
-        m.offset += m.len;
-    m.len = len;
-    strcpy(m.from, user.name);
-    clock_now();
-    memcpy(m.date, now, 5);
-    m.flags = 0;
-    if (store_append(dat, text, len) && store_append(idx, &m, sizeof m)) {
-        sprintf(line, "Msg Nr. %u gespeichert.\n", n + 1);
-        term_puts(line);
-        lastread[b - 1] = n + 1;        /* own message isn't "new" */
+        lastread[b - 1] = no;           /* own message isn't "new" */
         save_lastread();
     } else {
         term_puts("Fehler beim Speichern.\n");
     }
-}
-
-static void delete_msg(uint8_t b)
-{
-    uint16_t no = ask_no(count(b));
-
-    if (!no || !store_get(idx, (uint32_t) (no - 1) * sizeof m, &m, sizeof m))
-        return;
-    m.flags |= F_DELETED;
-    term_puts(store_put(idx, (uint32_t) (no - 1) * sizeof m, &m, sizeof m) ? "Geloescht.\n" : "Fehler.\n");
 }
 
 uint8_t board_action(uint8_t b, char key)
@@ -230,7 +141,8 @@ uint8_t board_action(uint8_t b, char key)
     case '5':
         if (user.level < LVL_SYSOP)
             return 0;
-        delete_msg(b);
+        if ((no = ask_no(n)) != 0)
+            term_puts(msg_delete(no) ? "Geloescht.\n" : "Fehler.\n");
         return 1;
     }
     return 0;

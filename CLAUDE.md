@@ -10,7 +10,9 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
   `store.c`; a sequential read (`store_open/next/close`) blocks N2 until closed.
 - Never use `"\n"`/`"\r\n"` to match bytes from files or the network (strcspn etc.) – in cc65 atari `"\n"` is $9B;
   use `"\015\012"`.
-- Headless test: `tools/emu.sh build/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
+- Message storage (boards `bNN`, mailboxes `pNNN`) lives in `msg.c`; board.c/pm.c only do UI + read markers.
+- Menu digits are relative to the current menu (like 1987); tests must use `*…` chains for absolute paths.
+- All tests: `tools/test_all.sh` (fresh data each). Single: `tools/emu.sh build/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
   listener), then `cd tools && python3 test_phase{1,2,3}.py` (2 and 3 need fresh data: delete `sd/bbs/{users,stats,lastread}.dat`,
   `b*.idx`, `b*.dat`, write `sysop.txt` = `geheim1`; run 2 or 3 first, then 1) (module `bbstest.py`: Call.expect/send/page_until, petscii()).
   `VIDEO=1`/`AUDIO=1` record; last frame via ffmpeg `-sseof -0.2`.

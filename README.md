@@ -17,7 +17,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | 1 | Terminal layer (ASCII/ATASCII/PETSCII, line editor, paging), ring sound on incoming call | ✔ 2026-11-01 |
 | 2 | Users + login, call counters ("Anrufer Nr.", per-user calls, System Status), **new users need sysop approval before they can write** | ✔ 2026-11-01 |
 | 3 | Menu tree from `menus.txt`, boards (read/write/delete, new messages) | ✔ 2026-11-01 |
-| 4 | Personal messages | |
+| 4 | Personal messages (PMsg), "Msg an Sysop" also for not yet approved users | ✔ 2026-11-01 |
 | 5 | Sysop console + chat, **sound signal when a caller pages the sysop** | |
 | 6 | 24/7 hardening, FRITZ!Box port forward + DynDNS, go-live | |
 
@@ -29,6 +29,8 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | `make run` | stop the Altirra NetSIO hub if running, start FujiNet-PC (SD = `sd/`), atari800 `-netsio -run` |
 | `make stop` | stop FujiNet-PC |
 | `tools/emu.sh build/bbs.xex [sec]` | fresh FujiNet-PC + headless atari800, waits until 6502 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
+| `tools/test_all.sh` | **all tests**, each on fresh data (deletes the BBS data in `sd/bbs/`!) – about 15 min |
+| `cd tools && python3 test_phase4.py` | PMs: new user → sysop, reply, read marker, unknown recipient, delete, guests |
 | `cd tools && python3 test_phase1.py` | automated test calls: PC (ASCII/telnet), Atari (ATASCII), C64 (PETSCII) |
 | `cd tools && python3 test_phase3.py` | menus, chains, boards: write, new, read, approval rule, delete (needs fresh data) |
 | `cd tools && python3 test_phase2.py` | register, login, approval, guest, password change, counters (needs fresh `users.dat`/`stats.dat` and `sysop.txt` = `geheim1`) |
@@ -91,7 +93,7 @@ Data formats (little endian):
 
 | File | Content |
 |------|---------|
-| `users.dat` | 32-byte records, user no. = index + 1: name[16], pw hash u32 (FNV-1a of upper-case name + `:` + password), calls u16, level u8, flags u8, last call D,M,Y,h,m, 3 spare |
+| `users.dat` | 32-byte records, user no. = index + 1: name[16], pw hash u32 (FNV-1a of upper-case name + `:` + password), calls u16, level u8, flags u8, last call D,M,Y,h,m, PMs read u16, 1 spare |
 | `stats.dat` | total calls u32, calls today u16, day D,M,Y, last caller[16] |
 
 ## Menus + boards (Phase 3)
@@ -112,9 +114,21 @@ Writing needs level 2 (approved member); guests and new users only read.
 
 | File | Content |
 |------|---------|
+| `pNNN.idx/.dat` | personal mailbox of user NNN, same format as boards |
 | `bNN.idx` | 48-byte headers, msg no. = index + 1: offset u32, len u16, from[16], date D,M,Y,h,m, flags u8 (1 = deleted), subject[20] |
 | `bNN.dat` | message texts back to back, lines end with LF |
 | `lastread.dat` | per user 16 × u16: highest message read per board (offset = (user no. − 1) × 32) |
 | `menus.txt`, `texts/*.txt` | menu tree and info texts, plain text |
 
 Limits: 40 lines per message; `store_size()` is 16 bit, so an `.idx` holds up to 1365 messages per board.
+
+## Personal messages (Phase 4)
+
+- Login: "Es ist keine Post fuer Dich da" or "Du hast 2 neue PMsg! (*82)".
+- Menu 8 PMsg/Userverwaltung: 1 Pers. Briefe schreiben (`An ==>` name, case-insensitive), 2 Pers. Briefe lesen
+  (list with `*` = new, number = read, `D`+number = delete, then "Antworten (J/N)?" with subject "Re: …"),
+  3 Liste der Benutzer, 4 Passwort aendern, 9 Freischalten (sysop).
+- Hauptmenue 9 "Msg an Sysop": a letter to user 1 (SYSOP) – also for **new, not yet approved users**
+  (e.g. "bitte freischalten"); everything else needs level 2. Guests have no mailbox.
+- Storage: mailbox `pNNN.idx/.dat` per user (shared code with the boards in `msg.c`); "read up to" marker in
+  the user record. Lists cut subjects to 18 characters to fit 40 columns.

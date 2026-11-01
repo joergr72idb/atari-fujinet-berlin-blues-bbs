@@ -16,7 +16,7 @@ CFLAGS   := -t atari -O -I $(FNLIB) -g
 
 all: $(XEX)
 
-BBS_SRC  := src/bbs.c src/net.c src/term.c src/sound.c src/store.c src/user.c src/menu.c src/board.c
+BBS_SRC  := src/bbs.c src/net.c src/term.c src/sound.c src/store.c src/user.c src/menu.c src/msg.c src/board.c src/pm.c
 
 build/bbs.xex: $(BBS_SRC) src/*.h | build
 	$(CL65) $(CFLAGS) -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
