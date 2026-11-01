@@ -69,6 +69,7 @@ the internet via the existing DynDNS name, port 6502. Tested from a phone on mob
 | `make stop` | stop the live instance |
 | `tools/emu.sh build/test/bbs.xex [sec]` | fresh test instance (FujiNet-PC on `build/testsd`) + headless atari800, waits until 6503 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
 | `tools/test_all.sh` | **all tests** on the test instance, each on fresh data in `build/testsd/` (live BBS and `sd/` untouched) – about 20 min |
+| `cd tools && python3 test_phase6.py` | 24/7: idle across the clock wrap, silent + drip bots, hang-ups at every stage, FujiNet restart (right after `emu.sh`) |
 | `cd tools && python3 test_phase5.py` | sysop console: present/away, paging + chat, kick, local login, quit (`build/test/bbs-test.xex`) |
 | `cd tools && python3 test_phase4.py` | PMs: new user → sysop, reply, read marker, unknown recipient, delete, guests |
 | `cd tools && python3 test_phase1.py` | automated test calls: PC (ASCII/telnet), Atari (ATASCII), C64 (PETSCII) |
@@ -192,3 +193,25 @@ Callers: Hauptmenue 9 "Msg an Sysop/Chat" – sysop away → straight to a lette
 double ring of an incoming call) for up to 30 s; C answers, otherwise "Keine Antwort." and a letter.
 
 Memory (2026-11-01): code + data up to `$905B`, 2 KB stack, about 9 KB free below the screen.
+
+## 24/7 hardening (Phase 6)
+
+**Item 1 – network robustness** (done 2026-11-01):
+
+- **Clock wrap:** cc65's `clock()` reads the 24-bit RTCLOK, which wraps every 2^24 ticks (**3.9 days** PAL).
+  All time math uses `ELAPSED(t)` (`src/ticks.h`, masked to 24 bits). Before, the wrap kicked a connected
+  caller as "idle", showed a wrong online time and could hang `sound.c`'s wait loop for 93 hours.
+  Test builds (`-DTESTWRAP`) set RTCLOK to wrap ~90 s after boot, so every test run crosses a wrap.
+- **Bots on the internet:** before login a caller gets 60 s without a key (`LOGIN_IDLE`) and 5 min in total
+  (`LOGIN_TOTAL`), then "Zeit abgelaufen" and hang-up – a port scanner can't hold the single line. After login
+  the 5 min idle limit stays, no total limit. Test builds use 20 s / 60 s.
+- **Hang-ups:** a caller vanishing at any stage (terminal choice, password, menu, editor, during output) ends the
+  session and the BBS answers the next call; a failed `network_write` marks the caller gone at once.
+- **Lost listener:** if FujiNet restarts, the status call still succeeds but reports `conn=0, err=207`
+  (NOT_CONNECTED, firmware `NDevice::current_status`); after 4 such polls (~1 s) the BBS reopens the listener
+  ("[Listener neu geoeffnet (n)]" on the sysop screen). A failed listen at startup retries every 10 s instead
+  of exiting.
+- A connection that dies without a TCP close (phone loses signal) can't be detected; it ends via the idle limit (5 min after login, 60 s before).
+
+Open: listener occasionally slow to appear at boot (item 2), SD write safety (item 3), soak test (item 4), go-live (item 5).
+

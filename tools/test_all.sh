@@ -9,6 +9,8 @@ fresh() {
   tools/emu.sh "$1" 900 >/dev/null || exit 1
 }
 rc=0
+fresh build/test/bbs.xex                  # phase 6 first after boot: its test 1 spans the clock wrap
+if (cd tools && python3 test_phase6.py > ../build/test_phase6.log 2>&1); then echo "phase 6: OK"; else echo "phase 6: FAIL (build/test_phase6.log)"; rc=1; fi
 fresh build/test/bbs-test.xex             # phase 5 presses sysop keys: test build
 if (cd tools && python3 test_phase5.py > ../build/test_phase5.log 2>&1); then echo "phase 5: OK"; else echo "phase 5: FAIL (build/test_phase5.log)"; rc=1; fi
 for t in 4 3 2; do

@@ -25,14 +25,16 @@ build/bbs.xex: $(BBS_SRC) src/*.h | build
 # test builds listen on 6503 (test instance, tools/emu.sh) so tests never collide with the live BBS on 6502;
 # bbs-test.xex also reads sysop keys from bbs/testkeys.txt (tools/test_phase5.py)
 TEST_PORT := 6503
+# short pre-login limits (seconds) so the timeout tests run fast; clock wraps ~90 s after boot
+TEST_DEFS := -DBBS_PORT=$(TEST_PORT) -DLOGIN_IDLE=20 -DLOGIN_TOTAL=60 -DTESTWRAP
 
 build/test/bbs.xex: $(BBS_SRC) src/*.h | build
 	@mkdir -p build/test
-	$(CL65) $(CFLAGS) -DBBS_PORT=$(TEST_PORT) -o $@ $(BBS_SRC) $(FNLIBA)
+	$(CL65) $(CFLAGS) $(TEST_DEFS) -o $@ $(BBS_SRC) $(FNLIBA)
 
 build/test/bbs-test.xex: $(BBS_SRC) src/*.h | build
 	@mkdir -p build/test
-	$(CL65) $(CFLAGS) -DBBS_PORT=$(TEST_PORT) -DTESTKEYS -o $@ $(BBS_SRC) $(FNLIBA)
+	$(CL65) $(CFLAGS) $(TEST_DEFS) -DTESTKEYS -o $@ $(BBS_SRC) $(FNLIBA)
 
 test: build/bbs.xex build/test/bbs.xex build/test/bbs-test.xex
 

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <peekpoke.h>
+#include "ticks.h"
 #include "net.h"
 #include "term.h"
 #include "store.h"
@@ -32,6 +33,7 @@ static void session(void)
 {
     memset(&user, 0, sizeof user);
     user_no = 0;
+    term_limits(LOGIN_IDLE, LOGIN_TOTAL);
     if (!term_detect())
         return;
     stats_count_call();
@@ -40,6 +42,7 @@ static void session(void)
     term_puts(line);
     if (!user_login())
         return;
+    term_limits(IDLE_SECONDS, 0);
     printf("[%s, Level %u]\n", user.name, user.level);
     user_status();
     pm_login();
@@ -67,15 +70,26 @@ static void local_session(void)
 int main(void)
 {
     char k;
+    clock_t start;
 
     POKE(0x41, 0);              /* SOUNDR: no SIO beeping - FujiNet is polled all the time */
+#ifdef TESTWRAP
+    /* test builds: RTCLOK ($12-$14, MSB first) wraps to 0 in 4500 ticks (~90 s PAL) */
+    POKE(0x14, 0); POKE(0x13, 0xEE); POKE(0x12, 0xFF); POKE(0x14, 0x6C);
+#endif
     sysop_init();
     puts("Berlin Blues BBS");
     user_init();
     printf("%u Menuepunkte\n", menu_load());
-    if (net_listen()) {
-        puts("FujiNet: listen failed");
-        return 1;
+    /* 24/7: never give up on the listener - retry every 10 s (Q still quits) */
+    while (net_listen()) {
+        puts("FujiNet: listen failed - neuer Versuch in 10 s");
+        start = clock();
+        while (ELAPSED(start) < 10 * CLOCKS_PER_SEC)
+            if (sysop_idle() == 'Q') {
+                sysop_exit();
+                return 0;
+            }
     }
     while (!sysop_quit) {
         puts("\nwarte auf Anruf...");

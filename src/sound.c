@@ -1,14 +1,15 @@
 /* Sysop signals on the Atari's POKEY. */
 #include <atari.h>
 #include <time.h>
+#include "ticks.h"
 #include "sound.h"
 
 /* Wait n clock ticks (1/50 s PAL, 1/60 s NTSC). */
 static void wait(clock_t n)
 {
-    clock_t t = clock() + n;
+    clock_t t = clock();
 
-    while (clock() < t)
+    while (ELAPSED(t) < n)
         ;
 }
 

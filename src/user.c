@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
+#include "ticks.h"
 #include "fujinet-clock.h"
 #include "net.h"
 #include "term.h"
@@ -299,7 +300,7 @@ void user_status(void)
 
 void user_online(char *buf)
 {
-    unsigned long s = (clock() - online_since) / CLOCKS_PER_SEC;
+    unsigned long s = (ELAPSED(online_since)) / CLOCKS_PER_SEC;
 
     sprintf(buf, "%lu:%02lu:%02lu", s / 3600, s / 60 % 60, s % 60);
 }

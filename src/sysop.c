@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "ticks.h"
 #include <peekpoke.h>
 #include "net.h"
 #include "term.h"
@@ -84,7 +85,7 @@ void sysop_status(void)
 {
     char t[12];
 
-    if (clock() - last_status < CLOCKS_PER_SEC / 2)
+    if (ELAPSED(last_status) < CLOCKS_PER_SEC / 2)
         return;
     last_status = clock();
     if (net_online() || term_local) {
@@ -114,7 +115,7 @@ static int test_key(void)
 
     if (tk_pos < tk_len)
         return (uint8_t) tk[tk_pos++];
-    if (clock() - tk_last < CLOCKS_PER_SEC)
+    if (ELAPSED(tk_last) < CLOCKS_PER_SEC)
         return -1;
     tk_last = clock();
     n = store_size(TESTKEYS_FILE);
@@ -212,10 +213,10 @@ static uint8_t chat(void)
                 net_flush();
             continue;
         }
-        if (clock() - last_key < CLOCKS_PER_SEC)
+        if (ELAPSED(last_key) < CLOCKS_PER_SEC)
             continue;                   /* sysop is typing: keyboard only */
         net_flush();
-        if (clock() - last_net < CLOCKS_PER_SEC / 4)
+        if (ELAPSED(last_net) < CLOCKS_PER_SEC / 4)
             continue;
         last_net = clock();
         sysop_status();
@@ -290,7 +291,7 @@ void sysop_page(void)
     term_puts("Ich rufe den Sysop (Taste = Abbruch)");
     puts("\n[Sysop gerufen - C = Chat]");
     start = clock();
-    while (clock() - start < PAGE_SECONDS * CLOCKS_PER_SEC) {
+    while (ELAPSED(start) < PAGE_SECONDS * CLOCKS_PER_SEC) {
         sound_page();
         term_putc('.');
         net_flush();

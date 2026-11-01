@@ -1,13 +1,12 @@
 /* Terminal layer: ASCII (PC, CPC), PETSCII (C64), ATASCII (Atari). */
 #include <stdio.h>
 #include <time.h>
+#include "ticks.h"
 #include "fujinet-network.h"
 #include "net.h"
 #include "term.h"
 #include "sound.h"
 #include "sysop.h"
-
-#define IDLE_SECONDS  300       /* hang up after 5 minutes without a key */
 
 uint8_t term_mode;
 uint8_t term_width = 40;
@@ -115,6 +114,16 @@ void term_cls(void)
 
 /* ---- input ----------------------------------------------------------- */
 
+static uint16_t idle_secs = IDLE_SECONDS, total_secs;
+static clock_t since;
+
+void term_limits(uint16_t idle, uint16_t total)
+{
+    idle_secs = idle;
+    total_secs = total;
+    since = clock();
+}
+
 static int raw_getc(void)
 {
     clock_t idle = clock();
@@ -133,7 +142,8 @@ static int raw_getc(void)
             return KEY_GONE;
         if (c != NET_NONE)
             return c;
-        if (clock() - idle > IDLE_SECONDS * CLOCKS_PER_SEC) {
+        if (ELAPSED(idle) > idle_secs * CLOCKS_PER_SEC
+            || (total_secs && ELAPSED(since) > total_secs * CLOCKS_PER_SEC)) {
             term_puts("\nZeit abgelaufen - bis zum naechsten Mal!\n");
             net_hangup();
             return KEY_GONE;
@@ -279,7 +289,7 @@ uint8_t term_detect(void)
     /* A line-mode telnet client sends "1" + CR LF together: drop the line end,
        or it would be read as an empty user name (= guest). */
     start = clock();
-    while (clock() - start < CLOCKS_PER_SEC / 2) {
+    while (ELAPSED(start) < CLOCKS_PER_SEC / 2) {
         c = net_getc();
         if (c == NET_GONE)
             return 0;

@@ -8,9 +8,10 @@
 #define NET_GONE  -2    /* net_getc: caller hung up */
 
 extern uint8_t net_telnet;      /* filter telnet IAC sequences from input */
+extern uint16_t net_relistens;  /* times the listener had to be reopened */
 
 uint8_t net_listen(void);       /* open the listener, 0 = ok */
-uint8_t net_ringing(void);      /* a caller is waiting to be accepted */
+uint8_t net_ringing(void);      /* a caller is waiting to be accepted (reopens a lost listener) */
 void net_accept(void);
 uint8_t net_online(void);       /* a caller is connected */
 int  net_getc(void);            /* byte, NET_NONE or NET_GONE */

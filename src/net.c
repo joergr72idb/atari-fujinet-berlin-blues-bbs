@@ -1,6 +1,8 @@
 /* Caller connection over FujiNet: TCP listener on port 6502 (test builds: BBS_PORT=6503), buffered I/O. */
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include "ticks.h"
 #include "fujinet-network.h"
 #include "net.h"
 
@@ -24,22 +26,44 @@ static clock_t last_poll;
 /* Polls that find nothing are spaced out: every SIO call blocks the sysop's keyboard. */
 #define POLL_TICKS  (CLOCKS_PER_SEC / 8)
 
+uint16_t net_relistens;
+
 uint8_t net_listen(void)
 {
     return network_open(LISTEN, OPEN_MODE_RW, OPEN_TRANS_NONE);
 }
 
 static uint8_t online;
+static uint8_t errs;            /* listener status errors in a row */
+
+/* The listener is gone (FujiNet restarted, network trouble): open it again. */
+static void relisten(void)
+{
+    errs = 0;
+    network_close(LISTEN);
+    if (net_listen() == FN_ERR_OK) {
+        ++net_relistens;
+        printf("\n[Listener neu geoeffnet (%u)]\n", net_relistens);
+    }
+}
 
 uint8_t net_ringing(void)
 {
     uint16_t bw;
     uint8_t conn, err;
 
-    if (clock() - last_poll < POLL_TICKS * 2)
+    if (ELAPSED(last_poll) < POLL_TICKS * 2)
         return 0;
     last_poll = clock();
-    return network_status(LISTEN, &bw, &conn, &err) == FN_ERR_OK && conn;
+    /* An SIO error, or err 207 (NOT_CONNECTED) = FujiNet has no listener on N1 (e.g. it
+       restarted); a healthy idle listener reports its last real error (1 = ok) instead. */
+    if (network_status(LISTEN, &bw, &conn, &err) != FN_ERR_OK || (!conn && err == 207)) {
+        if (++errs >= 4)
+            relisten();
+        return 0;
+    }
+    errs = 0;
+    return conn;
 }
 
 void net_accept(void)
@@ -62,7 +86,7 @@ static uint8_t fill(void)
     uint8_t conn, err;
     int16_t n;
 
-    if (clock() - last_poll < POLL_TICKS)
+    if (ELAPSED(last_poll) < POLL_TICKS)
         return 0;
     if (network_status(LISTEN, &bw, &conn, &err) != FN_ERR_OK || !conn) {
         gone = 1;
@@ -110,8 +134,8 @@ int net_getc(void)
 
 void net_flush(void)
 {
-    if (txlen && !gone)
-        network_write(LISTEN, txbuf, txlen);
+    if (txlen && !gone && network_write(LISTEN, txbuf, txlen) != FN_ERR_OK)
+        gone = 1;                   /* caller vanished while we were sending */
     txlen = 0;
 }
 
