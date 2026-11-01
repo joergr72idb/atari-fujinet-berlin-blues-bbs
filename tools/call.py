@@ -8,7 +8,7 @@ import socket, sys, time
 
 def main():
     args = sys.argv[1:]
-    host, port = 'localhost', 6502
+    host, port = 'localhost', 6503   # test instance; live BBS: localhost:6502
     if args and not args[0][0] in '<>':
         host, port = args[0].split(':'); port = int(port); args = args[1:]
     s = socket.create_connection((host, port), timeout=30)

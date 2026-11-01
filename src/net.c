@@ -1,10 +1,15 @@
-/* Caller connection over FujiNet: TCP listener on port 6502, buffered I/O. */
+/* Caller connection over FujiNet: TCP listener on port 6502 (test builds: BBS_PORT=6503), buffered I/O. */
 #include <string.h>
 #include <time.h>
 #include "fujinet-network.h"
 #include "net.h"
 
-#define LISTEN "N1:TCP://:6502/"
+#ifndef BBS_PORT
+#define BBS_PORT 6502
+#endif
+#define STR_(x) #x
+#define STR(x) STR_(x)
+#define LISTEN "N1:TCP://:" STR(BBS_PORT) "/"
 
 uint8_t net_telnet = 1;
 

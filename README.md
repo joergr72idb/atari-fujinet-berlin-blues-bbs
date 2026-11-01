@@ -46,23 +46,35 @@ the internet via the existing DynDNS name, port 6502. Tested from a phone on mob
 - Before handing out the address: change the sysop password (menu 3). Until phase 6 hardening is done, watch for
   hangs after dropped calls / a missing listener – restart with `make run`.
 
+**Two instances side by side** – tests never touch the live BBS:
+
+| | live (`make run`) | test (`tools/emu.sh`, `tools/test_all.sh`) |
+|---|---|---|
+| BBS port | 6502 (forwarded) | 6503 (not forwarded) |
+| FujiNet-PC | `opt/fujinet-pc`, web UI `0.0.0.0:8000` | `build/fujinet-test`, web UI `127.0.0.1:8001` |
+| NetSIO (UDP) | 9997 | 9998 |
+| SD folder | `sd/` | `build/testsd/` |
+| XEX | `build/bbs.xex` | `build/test/bbs.xex`, `build/test/bbs-test.xex` (built with `BBS_PORT=6503`) |
+
+`tools/inst.sh live|test fujinet|atari800|stop` finds or stops exactly one of them.
+
 ## Make targets
 
 | Command | Does |
 |---------|------|
 | `make` | build `build/bbs.xex` (`PROG=spike` for the phase 0 spike) |
-| `make test` | also `build/bbs-test.xex`: test build that reads sysop keys from `bbs/testkeys.txt` – never deploy it |
-| `make run` | stop the Altirra hub and old instances, fresh FujiNet-PC (SD = `sd/`), atari800 window with the BBS |
+| `make test` | also the test builds on port 6503: `build/test/bbs.xex` and `build/test/bbs-test.xex` (reads sysop keys from `bbs/testkeys.txt`) – never deploy them |
+| `make run` | stop the Altirra hub and the old live instance, fresh FujiNet-PC (SD = `sd/`), atari800 window with the BBS (test instance keeps running) |
 | `make reset PW=…` | delete all BBS data in `sd/bbs/` and set the sysop password for the first start |
-| `make stop` | stop FujiNet-PC |
-| `tools/emu.sh build/bbs.xex [sec]` | fresh FujiNet-PC on the test SD folder `build/testsd` + headless atari800, waits until 6502 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
-| `tools/test_all.sh` | **all tests**, each on fresh data in `build/testsd/` (your `sd/` is not touched) – about 20 min |
-| `cd tools && python3 test_phase5.py` | sysop console: present/away, paging + chat, kick, local login, quit (`bbs-test.xex`) |
+| `make stop` | stop the live instance |
+| `tools/emu.sh build/test/bbs.xex [sec]` | fresh test instance (FujiNet-PC on `build/testsd`) + headless atari800, waits until 6503 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
+| `tools/test_all.sh` | **all tests** on the test instance, each on fresh data in `build/testsd/` (live BBS and `sd/` untouched) – about 20 min |
+| `cd tools && python3 test_phase5.py` | sysop console: present/away, paging + chat, kick, local login, quit (`build/test/bbs-test.xex`) |
 | `cd tools && python3 test_phase4.py` | PMs: new user → sysop, reply, read marker, unknown recipient, delete, guests |
 | `cd tools && python3 test_phase1.py` | automated test calls: PC (ASCII/telnet), Atari (ATASCII), C64 (PETSCII) |
 | `cd tools && python3 test_phase3.py` | menus, chains, boards: write, new, read, approval rule, delete (needs fresh data) |
 | `cd tools && python3 test_phase2.py` | register, login, approval, guest, password change, counters (needs fresh `users.dat`/`stats.dat` and `sysop.txt` = `geheim1`) |
-| `tools/call.py '<text' '>keys\r' …` | ad-hoc scripted telnet call (expect/send steps) |
+| `tools/call.py '<text' '>keys\r' …` | ad-hoc scripted telnet call (expect/send steps), test instance 6503 by default |
 
 ## Findings (Phase 0)
 

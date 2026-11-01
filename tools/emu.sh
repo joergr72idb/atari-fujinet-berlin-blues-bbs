@@ -1,24 +1,31 @@
 #!/bin/sh
-# Start FujiNet-PC (SD = build/testsd) + headless atari800 with an XEX, wait until the BBS listens on 6502.
-#   tools/emu.sh build/bbs.xex [seconds]      (emulator ends after [seconds], default 300)
+# Start the TEST instance: own FujiNet-PC (build/fujinet-test, SD = build/testsd, web UI 127.0.0.1:8001,
+# NetSIO 9998) + headless atari800 with an XEX, wait until the BBS listens on 6503.
+# The live BBS (`make run`: 6502/8000/9997, SD = sd/) keeps running untouched.
+#   tools/emu.sh build/test/bbs.xex [seconds]      (emulator ends after [seconds], default 300)
+# Test XEXs must be built with BBS_PORT=6503 (`make test` -> build/test/*.xex).
 cd "$(dirname "$0")/.."
-# Tests run on their own SD folder (build/testsd) so `make run` data in sd/ is never touched.
 SDDIR=build/testsd
-mkdir -p $SDDIR/bbs
+FN=build/fujinet-test
+mkdir -p $SDDIR/bbs $FN
 cp sd/bbs/menus.txt $SDDIR/bbs/ && cp -r sd/bbs/texts $SDDIR/bbs/
-make -s nohub
+# own FujiNet-PC copy (data/ and binary from opt/fujinet-pc), config with NetSIO (BOIP) port 9998
+cp -u opt/fujinet-pc/fujinet opt/fujinet-pc/run-fujinet $FN/   # run-fujinet restarts it on reboot (exit 75)
+[ -d $FN/data ] || cp -r opt/fujinet-pc/data $FN/
+[ -f $FN/fnconfig.ini ] || cp opt/fujinet-pc/fnconfig.ini $FN/
+sed -i '/^\[BOIP\]/,/^\[/ s/^port=.*/port=9998/' $FN/fnconfig.ini
+ln -sfn ../testsd $FN/SD
 # Always a fresh FujiNet-PC: it crashes (heap corruption in fnTcpServer::stop) when it
 # shuts down or reboots with our TCP listener still open.
-pkill -x atari800 2>/dev/null; pkill -x fujinet 2>/dev/null
+tools/inst.sh test stop
 rm -f build/rec*.avi build/rec*.wav     # atari800 won't overwrite ("All video files exist!")
-while pgrep -x atari800 >/dev/null || pgrep -x fujinet >/dev/null; do sleep 1; done
-ln -sfn ../../$SDDIR opt/fujinet-pc/SD
-make -s fujinet
+(cd $FN && nohup ./run-fujinet -u http://127.0.0.1:8001 > ../fujinet-test.log 2>&1 < /dev/null &)
+sleep 2
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy nohup timeout "${2:-300}" \
-  ../atari-dev/opt/atari800/bin/atari800 -config atari800.cfg -xl -netsio -run "$1" ${VIDEO:+-record-video -vname build/rec%d.avi} ${AUDIO:+-record-audio -aname build/rec%d.wav} \
+  ../atari-dev/opt/atari800/bin/atari800 -config atari800.cfg -xl -netsio 9998 -run "$1" ${VIDEO:+-record-video -vname build/rec%d.avi} ${AUDIO:+-record-audio -aname build/rec%d.wav} \
   > build/emu.log 2>&1 < /dev/null &
 for i in $(seq 1 60); do
-  ss -ltn | grep -q ":6502 " && { echo "BBS listening (${i}x2s)"; exit 0; }
+  ss -ltn | grep -q ":6503 " && { echo "BBS listening on 6503 (${i}x2s)"; exit 0; }
   sleep 2
 done
-echo "BBS not listening after 120 s"; exit 1
+echo "BBS not listening on 6503 after 120 s"; exit 1

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Scripted test calls against the BBS on localhost:6502."""
+"""Scripted test calls against the test BBS on localhost:6503 (tools/emu.sh)."""
 import socket, sys, time
 
 def petscii(text):
@@ -13,7 +13,7 @@ def petscii(text):
     return bytes(out)
 
 class Call:
-    def __init__(self, name, host='localhost', port=6502):
+    def __init__(self, name, host='localhost', port=6503):
         self.name, self.buf, self.ok = name, b'', True
         self.s = socket.create_connection((host, port), timeout=60)
         print('== ' + name)

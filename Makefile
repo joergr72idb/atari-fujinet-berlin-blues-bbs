@@ -22,11 +22,19 @@ build/bbs.xex: $(BBS_SRC) src/*.h | build
 	$(CL65) $(CFLAGS) -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
 	  -o $@ $(BBS_SRC) $(FNLIBA)
 
-# test build: sysop keys can also come from bbs/testkeys.txt (tools/test_phase5.py)
-build/bbs-test.xex: $(BBS_SRC) src/*.h | build
-	$(CL65) $(CFLAGS) -DTESTKEYS -o $@ $(BBS_SRC) $(FNLIBA)
+# test builds listen on 6503 (test instance, tools/emu.sh) so tests never collide with the live BBS on 6502;
+# bbs-test.xex also reads sysop keys from bbs/testkeys.txt (tools/test_phase5.py)
+TEST_PORT := 6503
 
-test: build/bbs.xex build/bbs-test.xex
+build/test/bbs.xex: $(BBS_SRC) src/*.h | build
+	@mkdir -p build/test
+	$(CL65) $(CFLAGS) -DBBS_PORT=$(TEST_PORT) -o $@ $(BBS_SRC) $(FNLIBA)
+
+build/test/bbs-test.xex: $(BBS_SRC) src/*.h | build
+	@mkdir -p build/test
+	$(CL65) $(CFLAGS) -DBBS_PORT=$(TEST_PORT) -DTESTKEYS -o $@ $(BBS_SRC) $(FNLIBA)
+
+test: build/bbs.xex build/test/bbs.xex build/test/bbs-test.xex
 
 build/spike.xex: src/spike.c | build
 	$(CL65) $(CFLAGS) -o $@ $^ $(FNLIBA)
@@ -34,9 +42,9 @@ build/spike.xex: src/spike.c | build
 build:
 	mkdir -p build
 
-# own FujiNet-PC instance: SD folder = ./sd, NetSIO UDP 9997
+# live FujiNet-PC instance: SD folder = ./sd, NetSIO UDP 9997, web UI 8000 (the test instance is tools/emu.sh)
 fujinet:
-	@pgrep -x fujinet >/dev/null || ( cd $(FUJINET) && \
+	@test -n "$$(tools/inst.sh live fujinet)" || ( cd $(FUJINET) && \
 	  nohup ./run-fujinet > $(CURDIR)/build/fujinet.log 2>&1 & sleep 2 )
 
 # the Altirra NetSIO hub (atari-dev) also binds UDP 9997, atari800 needs it
@@ -44,11 +52,11 @@ nohub:
 	@pkill -f "python3 -m [n]etsiohub" && sleep 1 || true
 
 stop:
-	-pkill -x fujinet
+	@tools/inst.sh live stop
 
 # always a fresh FujiNet-PC: it crashes when restarted with the BBS listener open
 run: $(XEX) nohub
-	-@pkill -x atari800; pkill -x fujinet; while pgrep -x fujinet >/dev/null; do sleep 1; done
+	@tools/inst.sh live stop                     # only the live instance; tests keep running
 	@ln -sfn ../../sd $(FUJINET)/SD             # your data (tests use build/testsd)
 	@$(MAKE) -s fujinet
 	$(ATARI800) -config atari800.cfg -no-kbdjoy0 -no-kbdjoy1 -xl -netsio -run $(XEX)   # W/A/S/D, keypad, Ctrl stay keys

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Phase 5: sysop console - present/away, paging + chat, kick, local login, quit.
-Runs against build/bbs-test.xex (sysop keys via sd/bbs/testkeys.txt). Needs fresh data."""
+Runs against build/test/bbs-test.xex (sysop keys via sd/bbs/testkeys.txt). Needs fresh data."""
 import os, time, socket, struct, subprocess, pathlib
 from bbstest import Call
 
@@ -87,8 +87,8 @@ cmd(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)
 # 7: quit closes the listener cleanly
 keys('Q')
 time.sleep(5)
-listening = ':6502 ' in subprocess.run(['ss', '-ltn'], capture_output=True, text=True).stdout
-fujinet = subprocess.run(['pgrep', '-x', 'fujinet'], capture_output=True).returncode == 0
+listening = ':6503 ' in subprocess.run(['ss', '-ltn'], capture_output=True, text=True).stdout
+fujinet = subprocess.run(['../tools/inst.sh', 'test', 'fujinet'], capture_output=True, text=True).stdout.strip() != ''
 print('  after Q: listening=%s fujinet running=%s' % (listening, fujinet))
 assert not listening and fujinet
 print('ALL OK')
