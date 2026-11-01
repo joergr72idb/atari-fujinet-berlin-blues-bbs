@@ -5,6 +5,7 @@
 #include "net.h"
 #include "term.h"
 #include "sound.h"
+#include "sysop.h"
 
 #define IDLE_SECONDS  300       /* hang up after 5 minutes without a key */
 
@@ -12,6 +13,7 @@ uint8_t term_mode;
 uint8_t term_width = 40;
 uint8_t term_abort;
 uint8_t term_paging = 1;
+uint8_t term_local;
 
 static uint8_t rows = 24;
 static uint8_t col, lines;
@@ -22,6 +24,8 @@ static char fbuf[128];
 
 static void out(uint8_t c)
 {
+    if (term_local)
+        return;                     /* local session: only the sysop screen */
     switch (term_mode) {
     case TERM_ATARI:
         break;
@@ -116,7 +120,14 @@ static int raw_getc(void)
     clock_t idle = clock();
     int c;
 
+    if (term_local) {
+        while ((c = sysop_key()) < 0)
+            sysop_status();
+        return c;
+    }
     for (;;) {
+        if (sysop_poll())
+            return KEY_GONE;        /* kicked by the sysop */
         c = net_getc();
         if (c == NET_GONE)
             return KEY_GONE;
@@ -170,6 +181,29 @@ int term_getc(void)
         c = map_in((uint8_t) c);
     } while (c == -2);
     return c;
+}
+
+int term_poll(void)
+{
+    int c;
+
+    if (term_local)
+        return -2;
+    c = net_getc();
+    if (c == NET_GONE)
+        return KEY_GONE;
+    if (c == NET_NONE)
+        return -2;
+    return map_in((uint8_t) c);
+}
+
+void term_set_local(void)
+{
+    term_local = 1;
+    term_mode = TERM_ATARI;
+    term_width = 40;
+    rows = 23;
+    term_page_reset();
 }
 
 int term_getline(char *buf, uint8_t max, uint8_t hidden)

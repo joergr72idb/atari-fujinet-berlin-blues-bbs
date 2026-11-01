@@ -6,6 +6,7 @@ make -s nohub
 # Always a fresh FujiNet-PC: it crashes (heap corruption in fnTcpServer::stop) when it
 # shuts down or reboots with our TCP listener still open.
 pkill -x atari800 2>/dev/null; pkill -x fujinet 2>/dev/null
+rm -f build/rec*.avi build/rec*.wav     # atari800 won't overwrite ("All video files exist!")
 while pgrep -x atari800 >/dev/null || pgrep -x fujinet >/dev/null; do sleep 1; done
 make -s fujinet
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy nohup timeout "${2:-300}" \

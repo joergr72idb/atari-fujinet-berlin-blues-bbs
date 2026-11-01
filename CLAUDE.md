@@ -12,6 +12,9 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
   use `"\015\012"`.
 - Message storage (boards `bNN`, mailboxes `pNNN`) lives in `msg.c`; board.c/pm.c only do UI + read markers.
 - Menu digits are relative to the current menu (like 1987); tests must use `*…` chains for absolute paths.
+- Sysop keys in tests: build `bbs-test.xex` (`make test`, `-DTESTKEYS`), write keys to `sd/bbs/testkeys.txt`
+  (see `keys()` in test_phase5.py). Never deploy the test build.
+- Status line: sysop.c display list; any `GRAPHICS`/screen reopen would drop it.
 - All tests: `tools/test_all.sh` (fresh data each). Single: `tools/emu.sh build/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
   listener), then `cd tools && python3 test_phase{1,2,3}.py` (2 and 3 need fresh data: delete `sd/bbs/{users,stats,lastread}.dat`,
   `b*.idx`, `b*.dat`, write `sysop.txt` = `geheim1`; run 2 or 3 first, then 1) (module `bbstest.py`: Call.expect/send/page_until, petscii()).

@@ -10,11 +10,14 @@
 extern uint8_t net_telnet;      /* filter telnet IAC sequences from input */
 
 uint8_t net_listen(void);       /* open the listener, 0 = ok */
-void net_wait_call(void);       /* block until a caller is accepted */
+uint8_t net_ringing(void);      /* a caller is waiting to be accepted */
+void net_accept(void);
+uint8_t net_online(void);       /* a caller is connected */
 int  net_getc(void);            /* byte, NET_NONE or NET_GONE */
 void net_putc(uint8_t c);
 void net_write(const void *buf, uint8_t len);
 void net_flush(void);
 void net_hangup(void);
+void net_close(void);            /* close the listener (shutdown) */
 
 #endif

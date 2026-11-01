@@ -9,6 +9,7 @@
 #include "term.h"
 #include "store.h"
 #include "user.h"
+#include "sysop.h"
 
 #define USERS     BBS_DIR "users.dat"
 #define STATS     BBS_DIR "stats.dat"
@@ -144,6 +145,11 @@ void stats_count_call(void)
     ++stats.total;
     ++stats.today;
     store_put(STATS, 0, &stats, sizeof stats);
+    user_clock_start();
+}
+
+void user_clock_start(void)
+{
     online_since = clock();
 }
 
@@ -288,7 +294,7 @@ void user_status(void)
     term_puts(line);
     sprintf(line, "Zuletzt  : %s\n", stats.last_caller[0] ? stats.last_caller : "-");
     term_puts(line);
-    term_puts("Sysop ist: abwesend\n");
+    term_puts(sysop_present ? "Sysop ist: anwesend\n" : "Sysop ist: abwesend\n");
 }
 
 void user_online(char *buf)

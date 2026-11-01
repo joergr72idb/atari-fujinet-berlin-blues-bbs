@@ -18,7 +18,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | 2 | Users + login, call counters ("Anrufer Nr.", per-user calls, System Status), **new users need sysop approval before they can write** | ✔ 2026-11-01 |
 | 3 | Menu tree from `menus.txt`, boards (read/write/delete, new messages) | ✔ 2026-11-01 |
 | 4 | Personal messages (PMsg), "Msg an Sysop" also for not yet approved users | ✔ 2026-11-01 |
-| 5 | Sysop console + chat, **sound signal when a caller pages the sysop** | |
+| 5 | Sysop console (status line, keys C/K/A/L/Q) + chat, **paging signal when a caller pages the sysop** | ✔ 2026-11-01 |
 | 6 | 24/7 hardening, FRITZ!Box port forward + DynDNS, go-live | |
 
 ## Make targets
@@ -26,10 +26,12 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | Command | Does |
 |---------|------|
 | `make` | build `build/bbs.xex` (`PROG=spike` for the phase 0 spike) |
+| `make test` | also `build/bbs-test.xex`: test build that reads sysop keys from `bbs/testkeys.txt` – never deploy it |
 | `make run` | stop the Altirra NetSIO hub if running, start FujiNet-PC (SD = `sd/`), atari800 `-netsio -run` |
 | `make stop` | stop FujiNet-PC |
 | `tools/emu.sh build/bbs.xex [sec]` | fresh FujiNet-PC + headless atari800, waits until 6502 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
 | `tools/test_all.sh` | **all tests**, each on fresh data (deletes the BBS data in `sd/bbs/`!) – about 15 min |
+| `cd tools && python3 test_phase5.py` | sysop console: present/away, paging + chat, kick, local login, quit (`bbs-test.xex`) |
 | `cd tools && python3 test_phase4.py` | PMs: new user → sysop, reply, read marker, unknown recipient, delete, guests |
 | `cd tools && python3 test_phase1.py` | automated test calls: PC (ASCII/telnet), Atari (ATASCII), C64 (PETSCII) |
 | `cd tools && python3 test_phase3.py` | menus, chains, boards: write, new, read, approval rule, delete (needs fresh data) |
@@ -132,3 +134,23 @@ Limits: 40 lines per message; `store_size()` is 16 bit, so an `.idx` holds up to
   (e.g. "bitte freischalten"); everything else needs level 2. Guests have no mailbox.
 - Storage: mailbox `pNNN.idx/.dat` per user (shared code with the boards in `msg.c`); "read up to" marker in
   the user record. Lists cut subjects to 18 characters to fit 40 columns.
+
+## Sysop console (Phase 5)
+
+The Atari screen has a fixed **status line** (own display list: 1 status line + 23 scrolling lines of the OS
+screen editor, which mirrors the session):
+`BLUES warte  Anrufe 123  Sysop weg  L A Q` while idle, `BLUES Joerg L2 0:03:12 Sysop da` during a call.
+
+| Key | When | Does |
+|-----|------|------|
+| **A** | always | sysop present/away ("Sysop ist: anwesend" in the status screen) |
+| **C** | during a call / when paged | chat with the caller, ESC ends it |
+| **K** | during a call | kick: "Der Sysop hat die Verbindung beendet." |
+| **L** | idle | local login: the BBS on the Atari's own keyboard and screen (not counted as a call) |
+| **Q** | always | shut down cleanly (ends a call, closes the listener) |
+
+Callers: Hauptmenue 9 "Msg an Sysop/Chat" – sysop away → straight to a letter; present →
+"Sysop zum Chat rufen (J/N)?": the Atari plays the **paging signal** (rising triple beep, different from the
+double ring of an incoming call) for up to 30 s; C answers, otherwise "Keine Antwort." and a letter.
+
+Memory (2026-11-01): code + data up to `$905B`, 2 KB stack, about 9 KB free below the screen.

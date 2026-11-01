@@ -19,18 +19,27 @@ uint8_t net_listen(void)
     return network_open(LISTEN, OPEN_MODE_RW, OPEN_TRANS_NONE);
 }
 
-void net_wait_call(void)
+static uint8_t online;
+
+uint8_t net_ringing(void)
 {
     uint16_t bw;
     uint8_t conn, err;
 
-    do {
-        if (network_status(LISTEN, &bw, &conn, &err) != FN_ERR_OK)
-            conn = 0;
-    } while (!conn);
+    return network_status(LISTEN, &bw, &conn, &err) == FN_ERR_OK && conn;
+}
+
+void net_accept(void)
+{
     network_accept(LISTEN);
     rxlen = rxpos = txlen = iac = gone = 0;
     net_telnet = 1;
+    online = 1;
+}
+
+uint8_t net_online(void)
+{
+    return online && !gone;
 }
 
 /* Refill the receive buffer; returns 0 if nothing is waiting. */
@@ -91,6 +100,8 @@ void net_flush(void)
 
 void net_putc(uint8_t c)
 {
+    if (!online)
+        return;                     /* no caller (e.g. local sysop session) */
     txbuf[txlen++] = c;
     if (txlen == sizeof txbuf)
         net_flush();
@@ -106,7 +117,15 @@ void net_write(const void *buf, uint8_t len)
 
 void net_hangup(void)
 {
+    if (!online)
+        return;
     net_flush();
     network_close_client(LISTEN);
     gone = 1;
+    online = 0;
+}
+
+void net_close(void)
+{
+    network_close(LISTEN);
 }

@@ -38,6 +38,7 @@ extern uint8_t now[6];          /* D, M, Y, h, m, s - refreshed by clock_now() *
 void clock_now(void);
 void user_init(void);           /* first start: create users.dat with SYSOP */
 void stats_count_call(void);
+void user_clock_start(void);    /* start "time online" (local sessions aren't counted) */
 uint8_t user_login(void);       /* 0 = caller gone */
 void user_logoff(void);
 void user_online(char *buf);     /* time online as h:mm:ss */

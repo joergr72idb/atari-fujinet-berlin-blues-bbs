@@ -12,15 +12,21 @@ PROG     ?= bbs
 XEX      := build/$(PROG).xex
 CFLAGS   := -t atari -O -I $(FNLIB) -g
 
-.PHONY: all run boot fujinet nohub stop sd clean
+.PHONY: all test run boot fujinet nohub stop sd clean
 
 all: $(XEX)
 
-BBS_SRC  := src/bbs.c src/net.c src/term.c src/sound.c src/store.c src/user.c src/menu.c src/msg.c src/board.c src/pm.c
+BBS_SRC  := src/bbs.c src/net.c src/term.c src/sound.c src/store.c src/user.c src/menu.c src/msg.c src/board.c src/pm.c src/sysop.c
 
 build/bbs.xex: $(BBS_SRC) src/*.h | build
 	$(CL65) $(CFLAGS) -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
 	  -o $@ $(BBS_SRC) $(FNLIBA)
+
+# test build: sysop keys can also come from bbs/testkeys.txt (tools/test_phase5.py)
+build/bbs-test.xex: $(BBS_SRC) src/*.h | build
+	$(CL65) $(CFLAGS) -DTESTKEYS -o $@ $(BBS_SRC) $(FNLIBA)
+
+test: build/bbs.xex build/bbs-test.xex
 
 build/spike.xex: src/spike.c | build
 	$(CL65) $(CFLAGS) -o $@ $^ $(FNLIBA)

@@ -30,3 +30,17 @@ void sound_ring(void)
     wait(10);
     ring();
 }
+
+void sound_page(void)
+{
+    static const unsigned char pitch[] = { 60, 47, 35 };
+    unsigned char i;
+
+    for (i = 0; i < 3; ++i) {
+        _sound(0, pitch[i], 10, 10);
+        wait(6);
+        _sound(0, 0, 0, 0);
+        wait(2);
+    }
+    wait(25);
+}

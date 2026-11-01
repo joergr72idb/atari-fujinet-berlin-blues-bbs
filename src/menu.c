@@ -14,6 +14,7 @@
 #include "user.h"
 #include "board.h"
 #include "pm.h"
+#include "sysop.h"
 #include "menu.h"
 
 #define MENUS     BBS_DIR "menus.txt"
@@ -140,7 +141,7 @@ static void function(const char *f)
     else if (!strcmp(f, "new"))     board_new_all();
     else if (!strcmp(f, "pmwrite")) pm_write();
     else if (!strcmp(f, "pmread"))  pm_read();
-    else if (!strcmp(f, "sysop"))   pm_to_sysop();
+    else if (!strcmp(f, "sysop"))   sysop_page();
     else                            term_puts("Kommt bald.\n");
 }
 
