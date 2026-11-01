@@ -1,11 +1,10 @@
-/* Berlin Blues BBS - main loop (phase 1: terminal layer demo). */
+/* Berlin Blues BBS - main loop (phase 2: users + login). */
 #include <stdio.h>
 #include <peekpoke.h>
 #include "net.h"
 #include "term.h"
-#include "sound.h"
-
-#define TEXTS "N2:SD:///bbs/texts/"
+#include "store.h"
+#include "user.h"
 
 static const char banner[] =
     "\n"
@@ -22,63 +21,57 @@ static const char banner[] =
     "      ***  ***  *  *** **Box-System\n"
     "\n";
 
-static const char *const modes[] = { "PC/Mac", "Schneider CPC", "C64", "Atari" };
+static char line[41];
 
-static char line[40];
-static unsigned calls;
-
-static void session(void)
+static void menu(void)
 {
-    int c, n;
-
-    if (!term_detect())
-        return;
-    term_puts(banner);
-    sprintf(line, "Terminal: %s, %u Zeichen\n", modes[term_mode], term_width);
-    term_puts(line);
-    sprintf(line, "Du bist Anrufer Nr. %u\n", ++calls);
-    term_puts(line);
+    int c;
 
     for (;;) {
         term_page_reset();
-        term_puts("\n      Testmenue\n"
+        term_puts("\n      Hauptmenue\n"
                   "----------------------\n"
-                  "1 Zeile eingeben\n"
-                  "2 Langen Text zeigen\n"
-                  "3 Passwort eingeben\n"
-                  "----------------------\n"
-                  "0=logoff\n\n=>");
+                  "1 Status\n"
+                  "2 Liste der Benutzer\n"
+                  "3 Passwort aendern\n"
+                  "4 Info-Text\n");
+        if (user.level >= LVL_SYSOP)
+            term_puts("9 Freischalten (Sysop)\n");
+        term_puts("----------------------\n0=logoff\n\n=>");
         c = term_getc();
         if (c == KEY_GONE)
             return;
         term_putc((char) c);
         term_putc('\n');
         switch (c) {
-        case '1':
-            term_puts("Text: ");
-            if ((n = term_getline(line, 30, 0)) == KEY_GONE)
-                return;
-            term_puts("Du schriebst: ");
-            term_puts(line);
-            term_putc('\n');
-            break;
-        case '2':
-            if (!term_type_file(TEXTS "info.txt"))
+        case '1': user_status(); break;
+        case '2': user_list(); break;
+        case '3': user_change_pw(); break;
+        case '4':
+            if (!term_type_file(BBS_DIR "texts/info.txt"))
                 term_puts("Text nicht gefunden.\n");
             break;
-        case '3':
-            term_puts("Passwort ==>");
-            if ((n = term_getline(line, 16, 1)) == KEY_GONE)
-                return;
-            sprintf(line, "%d Zeichen\n", n);
-            term_puts(line);
-            break;
+        case '9': user_approve(); break;
         case '0':
-            term_puts("\nBis zum naechsten Mal...\n");
-            net_hangup();
+            user_logoff();
             return;
         }
     }
+}
+
+static void session(void)
+{
+    if (!term_detect())
+        return;
+    stats_count_call();
+    term_puts(banner);
+    sprintf(line, "Du bist Anrufer Nr. %lu\n", stats.total);
+    term_puts(line);
+    if (!user_login())
+        return;
+    printf("[%s, Level %u]\n", user.name, user.level);
+    user_status();
+    menu();
 }
 
 int main(void)
@@ -86,6 +79,7 @@ int main(void)
     POKE(0x41, 0);              /* SOUNDR: no SIO beeping - FujiNet is polled all the time */
     putchar(0x7D);
     puts("Berlin Blues BBS");
+    user_init();
     if (net_listen()) {
         puts("FujiNet: listen failed");
         return 1;
@@ -96,6 +90,6 @@ int main(void)
         puts("Anruf!");
         session();
         net_hangup();
-        printf("\naufgelegt (%u Anrufe)\n", calls);
+        printf("\naufgelegt (%lu Anrufe)\n", stats.total);
     }
 }

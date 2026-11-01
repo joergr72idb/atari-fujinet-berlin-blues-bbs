@@ -15,7 +15,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 |---|-------|--------|
 | 0 | Spike: TCP server on 6502, IAC filter, N:SD: write/append/seek | ✔ 2026-11-01 |
 | 1 | Terminal layer (ASCII/ATASCII/PETSCII, line editor, paging), ring sound on incoming call | ✔ 2026-11-01 |
-| 2 | Users + login, call counters ("Anrufer Nr.", per-user calls, System Status), **new users need sysop approval before they can write** | |
+| 2 | Users + login, call counters ("Anrufer Nr.", per-user calls, System Status), **new users need sysop approval before they can write** | ✔ 2026-11-01 |
 | 3 | Boards (read/write, new messages) | |
 | 4 | Personal messages | |
 | 5 | Sysop console + chat, **sound signal when a caller pages the sysop** | |
@@ -30,6 +30,7 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 | `make stop` | stop FujiNet-PC |
 | `tools/emu.sh build/bbs.xex [sec]` | fresh FujiNet-PC + headless atari800, waits until 6502 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
 | `cd tools && python3 test_phase1.py` | automated test calls: PC (ASCII/telnet), Atari (ATASCII), C64 (PETSCII) |
+| `cd tools && python3 test_phase2.py` | register, login, approval, guest, password change, counters (needs fresh `users.dat`/`stats.dat` and `sysop.txt` = `geheim1`) |
 | `tools/call.py '<text' '>keys\r' …` | ad-hoc scripted telnet call (expect/send steps) |
 
 ## Findings (Phase 0)
@@ -68,3 +69,26 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
   the phase 0 "listener didn't appear" run. Real FujiNet (ESP32) reboots by hardware reset – recheck on hardware.
 - **SIO noise:** with `SOUNDR` ($41) ≠ 0 every SIO access beeps – with FujiNet polled constantly, a real XL would
   buzz 24/7. `main()` sets it to 0 (verified in the audio recording: ring audible, noise gone).
+
+## Users + login (Phase 2)
+
+**First start:** put the initial sysop password into `bbs/sysop.txt` on the SD card (one line). On first start
+the BBS creates `bbs/users.dat` with user `SYSOP`, then **deletes `sysop.txt`**. Without the file the
+password is `blues` (warning on the sysop screen) – change it right away (menu 3).
+
+- Login like 1987: "Gaeste bitte <RETURN> druecken!" / "Username ==>" / "Passwort ==>" (3 tries, then hang-up).
+  Names are case-insensitive, passwords case-sensitive.
+- Unknown name → "Neu eintragen (J/N)?" → password twice (min. 4) with a hint not to reuse passwords
+  (telnet is unencrypted) → level 1 **NEU**: can read, can't write until the sysop approves (menu 9 → level 2).
+- Levels: 0 Gast, 1 Neu, 2 Mitglied, 5 Sysop.
+- **Call counters:** `stats.dat` counts every call that gets past the terminal selection ("Du bist Anrufer
+  Nr. N", calls today, last caller); per user: calls + last call date in `users.dat`.
+- Status screens like 1987 ("Dein Status", "Anrufe : 003", "Letzter Anruf", "System Status"); logoff shows
+  time and time online. Date/time from the FujiNet clock (timezone CET/CEST).
+
+Data formats (little endian):
+
+| File | Content |
+|------|---------|
+| `users.dat` | 32-byte records, user no. = index + 1: name[16], pw hash u32 (FNV-1a of upper-case name + `:` + password), calls u16, level u8, flags u8, last call D,M,Y,h,m, 3 spare |
+| `stats.dat` | total calls u32, calls today u16, day D,M,Y, last caller[16] |
