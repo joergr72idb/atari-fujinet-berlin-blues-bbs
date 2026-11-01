@@ -4,7 +4,6 @@
    Keys: C chat, K kick, A sysop present/away, L local login (idle), Q quit. */
 #include <stdio.h>
 #include <string.h>
-#include <conio.h>
 #include <time.h>
 #include <peekpoke.h>
 #include "net.h"
@@ -18,11 +17,14 @@
 #define SDLSTL  0x230
 #define SAVMSC  0x58
 #define LMARGN  0x52
-#define CH      0x2FC
-#define KBCODE  0xD209
-#define SKSTAT  0xD20F
+#define KEYDEF  0x79                        /* XL OS: key code -> ATASCII table */
+#define SHFLOK  0x2BE
 #define ESC     0x1B
 #define PAGE_SECONDS 30
+
+void kbd_init(void);
+void kbd_exit(void);
+int  kbd_get(void);
 
 uint8_t sysop_present;
 uint8_t sysop_quit;
@@ -56,12 +58,14 @@ void sysop_init(void)
     *p++ = 0x41; *p++ = (uint16_t) dl & 0xFF; *p = (uint16_t) dl >> 8;
     old_dl = PEEKW(SDLSTL);
     POKEW(SDLSTL, (uint16_t) dl);
+    kbd_init();
     putchar('\n');                          /* E: row 0 is hidden */
     sysop_status();
 }
 
 void sysop_exit(void)
 {
+    kbd_exit();
     POKEW(SDLSTL, old_dl);
 }
 
@@ -125,24 +129,28 @@ static int test_key(void)
 }
 #endif
 
-/* SIO masks the keyboard IRQ, and FujiNet is polled all the time: a key pressed during
-   an SIO call never reaches CH. If a key is down that the OS did not take, fetch it from
-   POKEY ourselves (once per press). */
+/* Key from the VBI keyboard driver (kbd.s), converted with the OS table; CAPS toggles
+   upper case like the OS does. Inverse, HELP, F-keys and the like are ignored. */
 int sysop_key(void)
 {
-    static uint8_t held;
-    uint8_t down = !(PEEK(SKSTAT) & 4);
+    int k = kbd_get();
+    uint8_t c;
 
-    if (PEEK(CH) != 0xFF) {
-        held = down;
-        return cgetc();
-    }
-    if (!down)
-        held = 0;
-    else if (!held) {
-        held = 1;
-        POKE(CH, PEEK(KBCODE));
-        return cgetc();
+    if (k >= 0 && k < 0xC0) {               /* SHIFT+CTRL+key: no ATASCII */
+        c = PEEK(PEEKW(KEYDEF) + k);
+        if (c == 0x82) {                    /* CAPS */
+            POKE(SHFLOK, PEEK(SHFLOK) ? 0 : 0x40);
+            return -1;
+        }
+        if (c == 0x83) {                    /* SHIFT+CAPS */
+            POKE(SHFLOK, 0x40);
+            return -1;
+        }
+        if (c >= 0x80 && c < 0x90)
+            return -1;
+        if (PEEK(SHFLOK) == 0x40 && c >= 'a' && c <= 'z')
+            c -= 0x20;
+        return c;
     }
 #ifdef TESTKEYS
     return test_key();
