@@ -102,21 +102,27 @@ int msg_compose(const char *subject)
 
 uint16_t msg_save(uint16_t len)
 {
-    uint16_t n = msg_count();
+    uint16_t n = store_size_sure(idx) / sizeof(Msg);
     char subject[sizeof msg.subject];
 
     strcpy(subject, msg.subject);
-    /* the new text goes behind the last one */
+    /* The text goes right behind the last indexed one, the header into slot n + 1 - written at
+       fixed positions, not appended: a save that broke off halfway (text without header, half a
+       header) gets overwritten instead of shifting every later message. The header is the commit. */
     msg.offset = 0;
-    if (n && msg_load(n))
+    if (n) {
+        if (!msg_load(n))
+            return 0;               /* unknown end of text: don't guess */
         msg.offset += msg.len;
+    }
     strcpy(msg.subject, subject);
     msg.len = len;
     strcpy(msg.from, user.name);
     clock_now();
     memcpy(msg.date, now, 5);
     msg.flags = 0;
-    if (store_append(dat, text, len) && store_append(idx, &msg, sizeof msg))
+    if (store_put(dat, msg.offset, text, len)
+        && store_put_check(idx, (uint32_t) n * sizeof msg, &msg, sizeof msg))
         return n + 1;
     return 0;
 }
@@ -126,5 +132,5 @@ uint8_t msg_delete(uint16_t no)
     if (!msg_load(no))
         return 0;
     msg.flags |= F_DELETED;
-    return store_put(idx, (uint32_t) (no - 1) * sizeof msg, &msg, sizeof msg);
+    return store_put_check(idx, (uint32_t) (no - 1) * sizeof msg, &msg, sizeof msg);
 }

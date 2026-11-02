@@ -10,7 +10,11 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
   Answers via `term_key(k, L_KEY_YES)`, never `'j'`. The user's live build is German (`config.mk`: BBS_LANG = de).
 - Sysop screen output via stdio (`putchar`/`puts`, E: scrolls), not conio (no scrolling on Atari).
 - SD files: `N2:SD:///bbs/...` (three slashes). N1 = listener, N2 = files. All file access goes through
-  `store.c`; a sequential read (`store_open/next/close`) blocks N2 until closed.
+  `store.c`; a sequential read (`store_open/next/close`) blocks N2 until closed. Records are written at
+  computed positions (`store_put`, `store_put_check` = with read-back), never appended; use
+  `store_size_sure()` when "missing/empty" leads to a write.
+- Only restart atari800 together with FujiNet-PC (`make run`): a restarted atari800 process never links to a
+  running FujiNet-PC over NetSIO.
 - Never use `"\n"`/`"\r\n"` to match bytes from files or the network (strcspn etc.) – in cc65 atari `"\n"` is $9B;
   use `"\015\012"`.
 - Message storage (boards `bNN`, mailboxes `pNNN`) lives in `msg.c`; board.c/pm.c only do UI + read markers.

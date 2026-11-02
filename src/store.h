@@ -8,9 +8,10 @@
 #define BBS_DIR "N2:SD:///bbs/"
 
 uint16_t store_size(const char *spec);      /* file size, 0 if missing */
+uint16_t store_size_sure(const char *spec); /* same, retried - before writes that trust "missing" */
 uint8_t store_get(const char *spec, uint32_t pos, void *buf, uint16_t len);
 uint8_t store_put(const char *spec, uint32_t pos, const void *buf, uint16_t len);
-uint8_t store_append(const char *spec, const void *buf, uint16_t len);
+uint8_t store_put_check(const char *spec, uint32_t pos, const void *buf, uint16_t len); /* + read back */
 uint8_t store_delete(const char *spec);
 
 /* Sequential reading: one open, then record after record. */

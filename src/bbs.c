@@ -71,8 +71,19 @@ int main(void)
 #endif
     sysop_init();
     puts(L_SYS_TITLE);
+    /* SD first: after a cold start FujiNet may still be coming up. user_init() would take an
+       unreadable users.dat for a missing one and set up a new SYSOP with the default password. */
+    while (!(k = menu_load())) {
+        puts(L_SYS_SD_WAIT);
+        start = clock();
+        while (ELAPSED(start) < 5 * CLOCKS_PER_SEC)
+            if (sysop_idle() == 'Q') {
+                sysop_exit();
+                return 0;
+            }
+    }
+    printf(L_SYS_MENU_ITEMS, k);
     user_init();
-    printf(L_SYS_MENU_ITEMS, menu_load());
     /* 24/7: never give up on the listener - retry every 10 s (Q still quits) */
     while (net_listen()) {
         puts(L_SYS_LISTEN_RETRY);

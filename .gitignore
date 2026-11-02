@@ -10,3 +10,4 @@ sd/bbs/spike.txt
 __pycache__/
 config.mk
 rom/
+backup/

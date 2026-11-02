@@ -92,7 +92,7 @@ static uint16_t find_user(const char *name)
 
 static uint8_t save_user(uint16_t no, const User *rec)
 {
-    return store_put(USERS, (uint32_t) (no - 1) * sizeof(User), rec, sizeof(User));
+    return store_put_check(USERS, (uint32_t) (no - 1) * sizeof(User), rec, sizeof(User));
 }
 
 uint16_t user_find(const char *name, char *canonical)
@@ -115,7 +115,7 @@ void user_init(void)
     uint16_t n;
 
     clock_set_tz(TZ);
-    if (store_size(USERS) >= sizeof(User))
+    if (store_size_sure(USERS) >= sizeof(User))
         return;
     memset(&u, 0, sizeof u);
     strcpy(u.name, "SYSOP");
@@ -186,6 +186,7 @@ static int ask_new_pw(void)
 static uint8_t do_register(const char *name)
 {
     int r;
+    uint16_t n;
 
     term_puts(L_REGISTER_ASK);
     r = term_getc();
@@ -207,11 +208,14 @@ static uint8_t do_register(const char *name)
     strcpy(user.name, name);
     user.pw = pw_hash(name, pw);
     user.level = LVL_NEW;
-    if (!store_append(USERS, &user, sizeof user)) {
+    /* into the slot after the last whole record (not appended: a half-written record from a
+       broken save must not shift all later user numbers); n = 0 means users.dat unreadable */
+    n = store_size_sure(USERS) / sizeof(User);
+    if (!n || !store_put_check(USERS, (uint32_t) n * sizeof(User), &user, sizeof user)) {
         term_puts(L_SAVE_ERROR);
         return 2;
     }
-    user_no = store_size(USERS) / sizeof(User);
+    user_no = n + 1;
     term_puts(L_WELCOME_NEW);
     return 1;
 }

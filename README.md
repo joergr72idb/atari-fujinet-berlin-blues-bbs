@@ -115,7 +115,7 @@ the internet via the existing DynDNS name, port 6502. Tested from a phone on mob
   TCP connect succeeds but waits until the line is free – no "busy" message possible.
 - **SD path:** use `N2:SD:///bbs/file` (empty host). `SD://bbs/file` treats `bbs` as host and
   writes to the SD root; `SD:/bbs/file` is not parsed as a URL.
-- **Modes:** write (`wb`), append (`OPEN_MODE_APPEND`, `ab`), read + `network_seek` work.
+- **Modes:** write (`wb`, truncates!), append (`OPEN_MODE_APPEND`, `ab`), read + `network_seek` work.
 - **Line ends:** cc65 (atari) turns `\n` in strings into ATASCII EOL `$9B`. For telnet use octal
   escapes `"\015\012"` (not `\x0d\x0a…` – a following hex letter is eaten into the escape).
 - **Port 9997:** the Altirra NetSIO hub from `atari-dev` also binds UDP 9997; while it runs,
@@ -252,7 +252,33 @@ Memory (2026-11-01): code + data up to `$905B`, 2 KB stack, about 9 KB free belo
 - `tools/run-fujinet` replaces it (`make run` and `tools/emu.sh` use it): restarts FujiNet-PC on every exit
   except a deliberate stop (SIGTERM/SIGINT/SIGKILL), crash-loop guard (>10 restarts/min → 30 s pause),
   timestamped lines in `build/fujinet.log`. `tools/inst.sh … stop` ends the loop first.
-  Listener back ~5 s after a cold start (4 of 4 runs, phase 6 test 6).
+  Listener back ~5 s after a cold start when FujiNet-PC restarts (phase 6 test 5).
+- **Emulator limit (found in item 3):** restarting the atari800 *process* while FujiNet-PC keeps running
+  leaves the NetSIO link dead (atari800 says "netsio connected", FujiNet-PC never gets a SIO frame) –
+  unless FujiNet-PC happens to crash and restart, as it did in the measurements above. `make run` always
+  restarts both, so only restart atari800 via `make run`. A fresh FujiNet-PC does link to a running
+  atari800 (test 6). Not an issue on real hardware (no NetSIO).
 
-Open: SD write safety (item 3), soak test (item 4), go-live (item 5).
+**Item 3 – SD write safety** (done 2026-11-02):
+
+- **No false "missing file":** `store_put` creates a missing file with `OPEN_MODE_WRITE`, which *truncates*.
+  A failed open used to count as "missing" right away – one SIO hiccup could empty `users.dat`. Now the
+  file is only created if three read-write and three read opens fail. `store_size_sure()` (retried) is used
+  wherever "missing/empty" leads to a write: new message number, new user number, first-start setup.
+- **Boot waits for the SD:** after a cold start FujiNet may still be coming up; `user_init()` would take an
+  unreadable `users.dat` for a missing one and set up a new SYSOP with the default password. The BBS now
+  loads `menus.txt` first and waits ("SD (N2:) nicht lesbar, warte 5 s") until it is readable.
+- **Torn writes heal:** messages and new users are written at computed positions instead of appended. A
+  save that broke off halfway (text without header, half a header, half a user record) is overwritten by
+  the next save instead of shifting every later record. The message header is written last (= commit).
+- **Read-back check** for message headers, deletions and user records (`store_put_check`): the firmware
+  buffers writes and doesn't report `fclose` errors, so a write "OK" alone proves little.
+- **Host backup:** `tools/backup.sh` puts a snapshot of `sd/bbs` into `backup/bbs-<date>.tar.gz` (skips when
+  nothing changed, keeps 30; `backup/` is git-ignored – it holds password hashes). Hourly via cron:
+  `0 * * * * /home/joerg/claude/blues-bbs/tools/backup.sh`. Restore: `make stop`, `tar -xzf … -C sd`.
+- Limits: `store_size` is capped at 65534 bytes by the firmware ("bytes waiting") – ~1365 messages per board
+  index, 2047 users. A power cut on a real FujiNet can still damage the FAT – that's what the backup is for.
+- Tests: phase 6 test 7 (torn message/user writes), test 8 (boot without readable SD, users unchanged).
+
+Open: soak test (item 4), go-live (item 5).
 
