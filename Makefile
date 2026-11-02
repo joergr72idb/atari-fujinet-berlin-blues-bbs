@@ -60,7 +60,7 @@ build:
 # live FujiNet-PC instance: SD folder = ./sd, NetSIO UDP 9997, web UI 8000 (the test instance is tools/emu.sh)
 fujinet:
 	@test -n "$$(tools/inst.sh live fujinet)" || ( cd $(FUJINET) && \
-	  nohup ./run-fujinet > $(CURDIR)/build/fujinet.log 2>&1 & sleep 2 )
+	  nohup $(CURDIR)/tools/run-fujinet >> $(CURDIR)/build/fujinet.log 2>&1 & sleep 2 )
 
 # the Altirra NetSIO hub (atari-dev) also binds UDP 9997, atari800 needs it
 nohub:

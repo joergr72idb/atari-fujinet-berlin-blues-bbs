@@ -10,7 +10,7 @@ FN=build/fujinet-test
 mkdir -p $SDDIR/bbs $FN
 cp sd/bbs/menus.txt $SDDIR/bbs/ && cp -r sd/bbs/texts $SDDIR/bbs/
 # own FujiNet-PC copy (data/ and binary from opt/fujinet-pc), config with NetSIO (BOIP) port 9998
-cp -u opt/fujinet-pc/fujinet opt/fujinet-pc/run-fujinet $FN/   # run-fujinet restarts it on reboot (exit 75)
+cp -u opt/fujinet-pc/fujinet tools/run-fujinet $FN/   # tools/run-fujinet restarts it on reboot (75) and crash (134)
 [ -d $FN/data ] || cp -r opt/fujinet-pc/data $FN/
 [ -f $FN/fnconfig.ini ] || cp opt/fujinet-pc/fnconfig.ini $FN/
 sed -i '/^\[BOIP\]/,/^\[/ s/^port=.*/port=9998/' $FN/fnconfig.ini

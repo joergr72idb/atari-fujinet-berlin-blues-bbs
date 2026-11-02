@@ -121,7 +121,7 @@ the internet via the existing DynDNS name, port 6502. Tested from a phone on mob
 - **Port 9997:** the Altirra NetSIO hub from `atari-dev` also binds UDP 9997; while it runs,
   atari800 can't talk to FujiNet-PC (every call returns error 1). `make run` stops it first.
 - **Background emulator:** start atari800 with `< /dev/null` (else it stops on terminal input).
-- Open: in one of five runs the listener didn't appear within 80 s – watch for this in phase 6.
+- In one of five runs the listener didn't appear within 80 s – cause: FujiNet-PC crash on reboot (see phase 6 item 2).
 
 ## Terminal layer (Phase 1)
 
@@ -242,5 +242,17 @@ Memory (2026-11-01): code + data up to `$905B`, 2 KB stack, about 9 KB free belo
   of exiting.
 - A connection that dies without a TCP close (phone loses signal) can't be detected; it ends via the idle limit (5 min after login, 60 s before).
 
-Open: listener occasionally slow to appear at boot (item 2), SD write safety (item 3), soak test (item 4), go-live (item 5).
+**Item 2 – listener at boot** (done 2026-11-02):
+
+- Measured: a fresh start (`tools/emu.sh`) listens after ~10 s, 10 of 10 runs. The old "no listener within 80 s"
+  was FujiNet-PC crashing on reboot (phase 1 finding), not a slow start.
+- The real gap: a **cold start of the Atari while FujiNet-PC runs** (emulator restart, Shift-F5, later a power
+  cycle) – FujiNet-PC reboots with the listener open, crashes with exit 134, and upstream `run-fujinet` only
+  restarts on exit 75. The BBS then retried its listen forever against nothing.
+- `tools/run-fujinet` replaces it (`make run` and `tools/emu.sh` use it): restarts FujiNet-PC on every exit
+  except a deliberate stop (SIGTERM/SIGINT/SIGKILL), crash-loop guard (>10 restarts/min → 30 s pause),
+  timestamped lines in `build/fujinet.log`. `tools/inst.sh … stop` ends the loop first.
+  Listener back ~5 s after a cold start (4 of 4 runs, phase 6 test 6).
+
+Open: SD write safety (item 3), soak test (item 4), go-live (item 5).
 

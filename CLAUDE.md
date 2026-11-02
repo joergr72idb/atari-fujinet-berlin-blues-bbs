@@ -22,7 +22,7 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
   9997, SD `sd/` = real users' data – never delete, reset or restart it yourself, never connect to 6502 without asking).
   Tests use the separate test instance: port 6503, `build/fujinet-test` (web UI 127.0.0.1:8001), NetSIO 9998,
   SD `build/testsd`, XEXs from `make test` in `build/test/` (`-DBBS_PORT=6503`). Never `pkill -x fujinet|atari800` –
-  use `tools/inst.sh live|test fujinet|atari800|stop`. FujiNet-PC must run via `run-fujinet` (restarts on exit 75 = reboot).
+  use `tools/inst.sh live|test fujinet|atari800|stop`. FujiNet-PC must run via `tools/run-fujinet` (restarts on every exit except SIGTERM/INT/KILL; upstream one only on 75).
 - All tests: `tools/test_all.sh` (fresh data each). Single: `tools/emu.sh build/test/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
   listener), then `cd tools && python3 test_phase{1,2,3}.py` (2-5 need fresh data in `build/testsd/bbs`: delete `{users,stats,lastread}.dat`,
   `b*`, `p*`, write `sysop.txt` = `geheim1` – test_all.sh does this) (module `bbstest.py`: Call.expect/send/page_until, petscii()).

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 6: 24/7 robustness - clock wrap, pre-login limits (bots), abrupt hang-ups, FujiNet restart.
+"""Phase 6: 24/7 robustness - clock wrap, pre-login limits (bots), abrupt hang-ups, FujiNet restart, Atari cold start.
 Runs against build/test/bbs.xex (LOGIN_IDLE=20, LOGIN_TOTAL=60, clock wraps ~90 s after boot).
 Must start right after tools/emu.sh (test 1 relies on the wrap). Needs fresh data (sysop.txt = geheim1)."""
 import os, signal, socket, subprocess, time, pathlib
@@ -124,4 +124,24 @@ while not listening() and time.time() - t0 < 90:
 print('  listener back after %.0f s' % (time.time() - t0))
 assert listening(), 'listener not back after 90 s'
 c = guest('5 Anruf nach FujiNet-Neustart'); bye(c)
+
+# 6: the Atari cold-starts (emulator restart / power cycle) with the listener open - FujiNet-PC
+#    crashes (exit 134) on the reboot; tools/run-fujinet must restart it and the BBS listen again
+fn_before = subprocess.run([str(ROOT / 'tools/inst.sh'), 'test', 'fujinet'], capture_output=True, text=True).stdout.split()
+for p in subprocess.run([str(ROOT / 'tools/inst.sh'), 'test', 'atari800'], capture_output=True, text=True).stdout.split():
+    os.kill(int(p), signal.SIGTERM)
+t0 = time.time()
+while listening() and time.time() - t0 < 30:
+    time.sleep(0.5)
+subprocess.Popen('SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy exec nohup timeout 600 ../atari-dev/opt/atari800/bin/atari800 '
+                 '-config atari800.cfg -xl -netsio 9998 -run build/test/bbs.xex >> build/emu.log 2>&1 < /dev/null',
+                 shell=True, cwd=ROOT, start_new_session=True)
+t0 = time.time()
+while not listening() and time.time() - t0 < 60:
+    time.sleep(0.5)
+print('  listener back %.0f s after the cold start' % (time.time() - t0))
+assert listening(), 'listener not back 60 s after the cold start'
+fn_after = subprocess.run([str(ROOT / 'tools/inst.sh'), 'test', 'fujinet'], capture_output=True, text=True).stdout.split()
+print('  FujiNet-PC %s -> %s' % (fn_before, fn_after))
+c = guest('6 Anruf nach Kaltstart'); bye(c)
 print('ALL OK')

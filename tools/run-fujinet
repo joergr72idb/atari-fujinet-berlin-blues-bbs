@@ -1,0 +1,21 @@
+#!/bin/sh
+# Keep FujiNet-PC running 24/7 (replaces upstream run-fujinet, which only restarts on exit 75 = reboot).
+# FujiNet-PC also dies with exit 134 (heap corruption in fnTcpServer::stop) when the Atari cold-starts
+# while the BBS listener is open; then the BBS would wait forever. So restart on every exit except
+# a deliberate stop (SIGTERM/SIGINT/SIGKILL from tools/inst.sh, make stop, Ctrl-C).
+# Run it from the FujiNet-PC directory (data/, fnconfig.ini, SD); arguments go to ./fujinet.
+n=0; since=$(date +%s)
+while :; do
+  echo "$(date '+%F %T') run-fujinet: starting FujiNet"
+  ./fujinet "$@"
+  rc=$?
+  case $rc in
+    130|137|143) echo "$(date '+%F %T') run-fujinet: stopped (exit $rc)"; exit $rc ;;
+  esac
+  echo "$(date '+%F %T') run-fujinet: FujiNet ended with exit code $rc - restarting"
+  # crash loop guard: more than 10 restarts within a minute -> wait 30 s
+  now=$(date +%s)
+  if [ $((now - since)) -gt 60 ]; then n=0; since=$now; fi
+  n=$((n + 1))
+  if [ $n -gt 10 ]; then sleep 30; n=0; since=$(date +%s); else sleep 1; fi
+done
