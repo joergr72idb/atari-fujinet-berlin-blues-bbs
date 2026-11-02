@@ -40,8 +40,12 @@ c.expect('Ich rufe den Sysop'); c.expect('.')
 keys('C')
 c.expect('*** Der Sysop ist da - Chat! ***')
 keys('Hallo Gast\x9b')
-c.expect('Hallo Gast\r\n')
-c.send('Hi Sysop\r\n'); c.expect('Hi Sysop\r\n')
+c.expect('SYSOP: Hallo Gast\r\n')
+c.send('Hi Sysop\r\n'); c.expect('Gast: Hi Sysop\r\n')
+c.send('Moment'); c.expect('Gast: Moment')               # no RETURN: sysop interrupts mid-line
+keys('ok\x9b')
+c.expect('\r\nSYSOP: ok\r\n')                 # Gast's line ended, sysop's starts
+c.send('\x7f\x7fja\r\n'); c.expect('Gast: ja\r\n')     # backspace can't eat the prefix
 keys('\x1b')
 c.expect('*** Chat beendet ***')
 cmd(c, '0'); c.expect('im System.'); c.close(); time.sleep(3)

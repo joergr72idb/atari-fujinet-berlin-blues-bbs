@@ -184,6 +184,39 @@ char sysop_idle(void)
 
 /* ---- chat ------------------------------------------------------------ */
 
+/* Every chat line starts with who wrote it ("SYSOP: " / "<Name>: "); if the other side
+   starts typing in the middle of a line, that line ends and theirs begins. */
+static uint8_t speaker, bol, len;   /* writer of the current line, at line start, chars on it */
+
+static void chat_char(uint8_t caller, char c)
+{
+    if (c == '\n') {
+        if (!bol) {
+            term_putc('\n');
+            bol = 1;
+        }
+        return;
+    }
+    if (c == KEY_BS) {
+        if (!bol && speaker == caller && len) {
+            term_putc(KEY_BS);          /* never into the prefix or the other's text */
+            --len;
+        }
+        return;
+    }
+    if (!bol && speaker != caller)
+        term_putc('\n');
+    if (bol || speaker != caller) {
+        term_puts(caller ? user.name : "SYSOP");
+        term_puts(": ");
+        speaker = caller;
+        bol = 0;
+        len = 0;
+    }
+    term_putc(c);
+    ++len;
+}
+
 /* Chat until the sysop presses ESC; 0 = caller gone.
    The Atari keyboard holds only one key, and every SIO call to FujiNet takes a while:
    while the sysop types, only the keyboard is read; the text goes out on RETURN or
@@ -195,6 +228,7 @@ static uint8_t chat(void)
 
     term_paging = 0;
     term_puts("\n*** Der Sysop ist da - Chat! ***\n");
+    bol = 1;
     net_flush();
     puts("[Chat - Ende mit ESC]");
     for (;;) {
@@ -203,11 +237,11 @@ static uint8_t chat(void)
             break;
         if (k >= 0) {
             if (k == 0x9B)
-                term_putc('\n');
+                chat_char(0, '\n');
             else if (k == 0x7E)
-                term_putc(KEY_BS);
+                chat_char(0, KEY_BS);
             else if (k >= 0x20 && k < 0x7D)
-                term_putc((char) k);
+                chat_char(0, (char) k);
             last_key = clock();
             if (k == 0x9B)
                 net_flush();
@@ -226,7 +260,7 @@ static uint8_t chat(void)
                 term_paging = 1;
                 return 0;
             }
-            term_putc((char) k);
+            chat_char(1, (char) k);
         }
         net_flush();
     }
