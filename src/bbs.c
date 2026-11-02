@@ -12,20 +12,9 @@
 #include "pm.h"
 #include "sysop.h"
 
-static const char banner[] =
-    "\n"
-    "  ***  **** ***  **   **** *  *\n"
-    "  *  * *    *  * **    **  *  *\n"
-    "  ***  **** ***  **    **  ** *\n"
-    "  *  * *    * *  **    **  * **\n"
-    "  ***  **** *  * **** **** *  *\n"
-    "\n"
-    "      ***\n"
-    "      *  * *   * * *** ***\n"
-    "      ***  *   * * *   **\n"
-    "      *  * *   * * **   **\n"
-    "      ***  ***  *  *** **Box-System\n"
-    "\n";
+/* The banner comes from bbs/texts/banner.txt on the SD card (editable by the sysop);
+   this one is only shown if the file is missing. */
+static const char banner[] = "\nBERLIN BLUES BOX\n\n";
 
 static char line[41];
 
@@ -37,7 +26,9 @@ static void session(void)
     if (!term_detect())
         return;
     stats_count_call();
-    term_puts(banner);
+    term_putc('\n');
+    if (!term_type_file(BBS_DIR "texts/banner.txt"))
+        term_puts(banner);
     sprintf(line, "Du bist Anrufer Nr. %lu\n", stats.total);
     term_puts(line);
     if (!user_login())
