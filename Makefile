@@ -12,27 +12,40 @@ PROG     ?= bbs
 XEX      := build/$(PROG).xex
 CFLAGS   := -t atari -O -I $(FNLIB) -g
 
+# Language of the program texts: lang/$(BBS_LANG).txt (English = lang/en.txt, the master list).
+# Set it once in config.mk (not in git), e.g.  BBS_LANG = de  - or per call: make BBS_LANG=de
+# (not LANG: that is the shell's locale variable)
+-include config.mk
+BBS_LANG ?= en
+LANG_H   := build/lang/$(BBS_LANG)/lang.h
+# remember the language of the last build, so switching it rebuilds the XEX
+$(shell mkdir -p build; echo $(BBS_LANG) | cmp -s - build/lang.cur 2>/dev/null || echo $(BBS_LANG) > build/lang.cur)
+
+build/lang/%/lang.h: lang/%.txt lang/en.txt tools/mklang.py
+	python3 tools/mklang.py $* $@
+
 .PHONY: all test run reset boot fujinet nohub stop sd clean
 
 all: $(XEX)
 
 BBS_SRC  := src/bbs.c src/net.c src/term.c src/sound.c src/store.c src/user.c src/menu.c src/msg.c src/board.c src/pm.c src/sysop.c src/kbd.s
 
-build/bbs.xex: $(BBS_SRC) src/*.h | build
-	$(CL65) $(CFLAGS) -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
+build/bbs.xex: $(BBS_SRC) src/*.h $(LANG_H) build/lang.cur | build
+	$(CL65) $(CFLAGS) -I $(dir $(LANG_H)) -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
 	  -o $@ $(BBS_SRC) $(FNLIBA)
 
 # test builds listen on 6503 (test instance, tools/emu.sh) so tests never collide with the live BBS on 6502;
 # bbs-test.xex also reads sysop keys from bbs/testkeys.txt (tools/test_phase5.py)
 TEST_PORT := 6503
-# short pre-login limits (seconds) so the timeout tests run fast; clock wraps ~90 s after boot
-TEST_DEFS := -DBBS_PORT=$(TEST_PORT) -DLOGIN_IDLE=20 -DLOGIN_TOTAL=60 -DTESTWRAP
+# short pre-login limits (seconds) so the timeout tests run fast; clock wraps ~90 s after boot;
+# the tests check the German texts, so test builds are always German
+TEST_DEFS := -DBBS_PORT=$(TEST_PORT) -DLOGIN_IDLE=20 -DLOGIN_TOTAL=60 -DTESTWRAP -I build/lang/de
 
-build/test/bbs.xex: $(BBS_SRC) src/*.h | build
+build/test/bbs.xex: $(BBS_SRC) src/*.h build/lang/de/lang.h | build
 	@mkdir -p build/test
 	$(CL65) $(CFLAGS) $(TEST_DEFS) -o $@ $(BBS_SRC) $(FNLIBA)
 
-build/test/bbs-test.xex: $(BBS_SRC) src/*.h | build
+build/test/bbs-test.xex: $(BBS_SRC) src/*.h build/lang/de/lang.h | build
 	@mkdir -p build/test
 	$(CL65) $(CFLAGS) $(TEST_DEFS) -DTESTKEYS -o $@ $(BBS_SRC) $(FNLIBA)
 

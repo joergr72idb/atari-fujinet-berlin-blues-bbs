@@ -5,6 +5,7 @@
 #include "fujinet-network.h"
 #include "net.h"
 #include "term.h"
+#include "lang.h"
 #include "sound.h"
 #include "sysop.h"
 
@@ -52,12 +53,12 @@ static void more(void)
     uint8_t i;
 
     term_paging = 0;
-    term_puts("--Mehr-- (RETURN/Q)");
+    term_puts(L_MORE);
     term_paging = 1;
     k = term_getc();
-    for (i = 0; i < 19; ++i)
+    for (i = 0; i < sizeof L_MORE - 1; ++i)
         term_putc(KEY_BS);
-    if (k == 'q' || k == 'Q' || k == KEY_GONE)
+    if (term_key(k, L_KEY_QUIT) || k == KEY_GONE)
         term_abort = 1;
     lines = 0;
 }
@@ -144,7 +145,7 @@ static int raw_getc(void)
             return c;
         if (ELAPSED(idle) > idle_secs * CLOCKS_PER_SEC
             || (total_secs && ELAPSED(since) > total_secs * CLOCKS_PER_SEC)) {
-            term_puts("\nZeit abgelaufen - bis zum naechsten Mal!\n");
+            term_puts(L_TIMEOUT);
             net_hangup();
             return KEY_GONE;
         }
@@ -177,6 +178,13 @@ static int map_in(uint8_t c)
         break;
     }
     return (c >= 0x20 && c < 0x7F) ? c : -2;
+}
+
+uint8_t term_key(int k, const char *key)
+{
+    if (k >= 'A' && k <= 'Z')
+        k += 'a' - 'A';
+    return k == key[0];
 }
 
 int term_getc(void)
@@ -264,7 +272,7 @@ uint8_t term_detect(void)
     int c;
 
     term_mode = TERM_PC;
-    raw_line("BERLIN BLUES BOX - BITTE <RETURN> DRUECKEN");
+    raw_line(L_RAW_PRESS_RETURN);
     net_flush();
     sound_ring();
     for (;;) {
@@ -277,7 +285,7 @@ uint8_t term_detect(void)
         }
         if (c != 0x0D && c != 0x0A)
             continue;
-        raw_line("1=PC/MAC  2=SCHNEIDER CPC  3=C64 ? ");
+        raw_line(L_RAW_MACHINE);
         do {
             c = raw_getc();
             if (c == KEY_GONE)

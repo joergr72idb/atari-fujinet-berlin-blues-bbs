@@ -23,6 +23,10 @@ retro-computing meetup group. Template for look and menus: the 1987 session tran
 
 ## Try it locally
 
+**Atari OS ROM:** `atari800.cfg` uses `rom/ATARIXL.ROM` (the original XL OS). Atari's ROMs are copyrighted
+and not in this repo – put your own dump there, or delete the `ROM_OS_BB01R2=` path in `atari800.cfg` and
+atari800 uses its built-in AltirraOS.
+
 ```sh
 make reset PW=meinpasswort   # fresh BBS data, sysop password for the first start
 make run                     # FujiNet-PC + atari800 window with the BBS (sysop console)
@@ -32,6 +36,31 @@ telnet localhost 6502        # in a second terminal: call the BBS
 In the emulator window you are the sysop (keys A/C/K/L/Q, see Phase 5). Callers: RETURN, then `1` for PC.
 Log in as `SYSOP` with your password, or register a new user and approve it as SYSOP (menu 8 → 9).
 FujiNet-PC's web UI: http://localhost:8000. Stop everything: close the window, `make stop`.
+
+## Languages and texts
+
+All program texts live in **`lang/en.txt`** (English, the master list with every key) and their
+translations, e.g. **`lang/de.txt`**. The build compiles the chosen language into the XEX (no extra
+memory or SD access on the Atari):
+
+```sh
+make BBS_LANG=de            # one build in German
+echo 'BBS_LANG = de' > config.mk   # or for good: config.mk is local, not in git (default: en)
+```
+
+New language: copy `lang/en.txt` to `lang/xx.txt`, translate the text in quotes, `make BBS_LANG=xx`.
+`tools/mklang.py` checks it and stops the build on errors:
+
+- keys that aren't in `en.txt`; missing keys only warn and use English
+- placeholders (`%u`, `%lu`, `%s`, …) must match the English text in number and order
+- plain ASCII only (umlauts as ae/oe/ue/ss – the callers' machines don't agree on special characters)
+- `KEY_*` = one lower-case answer letter (YES, QUIT at --More--, DELETE in the mailbox)
+- `RAW_*` = upper case only (shown before the caller picked PC/Atari/C64)
+- warning for lines longer than 40 characters (Atari/C64 screen)
+
+Not in the language file, because the sysop edits them on the SD card: the banner
+(`bbs/texts/banner.txt`), help texts (`bbs/texts/*.txt`) and menu names (`bbs/menus.txt`).
+The tests check the German texts, so test builds are always German (`build/lang/de`).
 
 ## Online (emulator on the dev box)
 
@@ -62,7 +91,7 @@ the internet via the existing DynDNS name, port 6502. Tested from a phone on mob
 
 | Command | Does |
 |---------|------|
-| `make` | build `build/bbs.xex` (`PROG=spike` for the phase 0 spike) |
+| `make` | build `build/bbs.xex` in `BBS_LANG` (config.mk, default `en`; `PROG=spike` for the phase 0 spike) |
 | `make test` | also the test builds on port 6503: `build/test/bbs.xex` and `build/test/bbs-test.xex` (reads sysop keys from `bbs/testkeys.txt`) – never deploy them |
 | `make run` | stop the Altirra hub and the old live instance, fresh FujiNet-PC (SD = `sd/`), atari800 window with the BBS (test instance keeps running) |
 | `make reset PW=…` | delete all BBS data in `sd/bbs/` and set the sysop password for the first start |

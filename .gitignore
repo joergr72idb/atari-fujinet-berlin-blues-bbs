@@ -8,3 +8,5 @@ sd/bbs/sysop.txt
 sd/bbs/testkeys.*
 sd/bbs/spike.txt
 __pycache__/
+config.mk
+rom/

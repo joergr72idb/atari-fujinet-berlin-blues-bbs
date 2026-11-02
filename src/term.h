@@ -35,6 +35,7 @@ void term_putc(char c);
 void term_puts(const char *s);
 void term_cls(void);
 int  term_getc(void);           /* key in internal code, or KEY_GONE */
+uint8_t term_key(int k, const char *key);  /* k is the answer key from lang (KEY_YES ...), any case */
 int  term_poll(void);           /* caller key without waiting: key, -2 = none, KEY_GONE */
 void term_set_local(void);
 void term_limits(uint16_t idle, uint16_t total);  /* idle / total seconds from now, total 0 = none */

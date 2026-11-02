@@ -9,6 +9,7 @@
 #include <peekpoke.h>
 #include "net.h"
 #include "term.h"
+#include "lang.h"
 #include "store.h"
 #include "user.h"
 #include "sound.h"
@@ -90,12 +91,12 @@ void sysop_status(void)
     last_status = clock();
     if (net_online() || term_local) {
         user_online(t);
-        snprintf(status, sizeof status, " BLUES %-10.10s L%u %s %s",
-                 user.name[0] ? user.name : term_local ? "(lokal)" : "(login)", user.level, t,
-                 sysop_present ? "Sysop da" : "Sysop weg");
+        snprintf(status, sizeof status, L_SYS_STATUS_CALL,
+                 user.name[0] ? user.name : term_local ? L_SYS_LOCAL : L_SYS_IN_LOGIN, user.level, t,
+                 sysop_present ? L_SYS_ST_PRESENT : L_SYS_ST_ABSENT);
     } else {
-        snprintf(status, sizeof status, " BLUES warte  Anrufe %lu  Sysop %s  L A Q",
-                 stats.total, sysop_present ? "da" : "weg");
+        snprintf(status, sizeof status, L_SYS_STATUS_IDLE,
+                 stats.total, sysop_present ? L_SYS_IDLE_PRESENT : L_SYS_IDLE_ABSENT);
     }
     show_status();
 }
@@ -163,7 +164,7 @@ int sysop_key(void)
 static void toggle_present(void)
 {
     sysop_present = !sysop_present;
-    printf("\n[Sysop %s]\n", sysop_present ? "anwesend" : "abwesend");
+    fputs(sysop_present ? L_SYS_PRESENT : L_SYS_ABSENT, stdout);
     last_status = 0;
 }
 
@@ -227,10 +228,10 @@ static uint8_t chat(void)
     int k;
 
     term_paging = 0;
-    term_puts("\n*** Der Sysop ist da - Chat! ***\n");
+    term_puts(L_CHAT_START);
     bol = 1;
     net_flush();
-    puts("[Chat - Ende mit ESC]");
+    puts(L_SYS_CHAT);
     for (;;) {
         k = sysop_key();
         if (k == ESC)
@@ -264,7 +265,7 @@ static uint8_t chat(void)
         }
         net_flush();
     }
-    term_puts("\n*** Chat beendet ***\n");
+    term_puts(L_CHAT_END);
     net_flush();
     term_paging = 1;
     return 1;
@@ -273,9 +274,9 @@ static uint8_t chat(void)
 static void kick(void)
 {
     term_paging = 0;
-    term_puts("\n*** Der Sysop hat die Verbindung beendet. ***\n");
+    term_puts(L_KICKED);
     net_hangup();
-    puts("[gekickt]");
+    puts(L_SYS_KICKED);
 }
 
 uint8_t sysop_poll(void)
@@ -310,20 +311,20 @@ void sysop_page(void)
     int k;
 
     if (!sysop_present) {
-        term_puts("Der Sysop ist gerade nicht da.\n");
+        term_puts(L_SYSOP_NOT_HERE);
         pm_to_sysop();
         return;
     }
-    term_puts("Sysop zum Chat rufen (J/N)? ");
+    term_puts(L_PAGE_ASK);
     if ((k = term_getc()) == KEY_GONE)
         return;
     term_putc('\n');
-    if (k != 'j' && k != 'J') {
+    if (!term_key(k, L_KEY_YES)) {
         pm_to_sysop();
         return;
     }
-    term_puts("Ich rufe den Sysop (Taste = Abbruch)");
-    puts("\n[Sysop gerufen - C = Chat]");
+    term_puts(L_PAGING);
+    puts(L_SYS_PAGED);
     start = clock();
     while (ELAPSED(start) < PAGE_SECONDS * CLOCKS_PER_SEC) {
         sound_page();
@@ -343,6 +344,6 @@ void sysop_page(void)
         if (k >= 0)
             break;
     }
-    term_puts("\nKeine Antwort.\n");
+    term_puts(L_NO_ANSWER);
     pm_to_sysop();
 }

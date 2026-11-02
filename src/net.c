@@ -5,6 +5,7 @@
 #include "ticks.h"
 #include "fujinet-network.h"
 #include "net.h"
+#include "lang.h"
 
 #ifndef BBS_PORT
 #define BBS_PORT 6502
@@ -43,7 +44,7 @@ static void relisten(void)
     network_close(LISTEN);
     if (net_listen() == FN_ERR_OK) {
         ++net_relistens;
-        printf("\n[Listener neu geoeffnet (%u)]\n", net_relistens);
+        printf(L_SYS_RELISTEN, net_relistens);
     }
 }
 

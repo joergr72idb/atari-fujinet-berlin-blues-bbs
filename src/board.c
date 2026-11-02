@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "term.h"
+#include "lang.h"
 #include "store.h"
 #include "user.h"
 #include "menu.h"
@@ -35,7 +36,7 @@ void board_login(void)
     memset(lastread, 0, sizeof lastread);
     if (user_no)
         store_get(LASTREAD, (uint32_t) (user_no - 1) * sizeof lastread, lastread, sizeof lastread);
-    term_puts("\nNeue Msg: ");
+    term_puts(L_NEW_MSGS);
     for (b = 1; b <= MAX_BOARDS; ++b) {
         if (!menu_board_name(b))
             continue;
@@ -46,7 +47,7 @@ void board_login(void)
             any = 1;
         }
     }
-    term_puts(any ? "\n" : "keine\n");
+    term_puts(any ? "\n" : L_NONE);
 }
 
 void board_show(uint8_t b)
@@ -55,14 +56,11 @@ void board_show(uint8_t b)
 
     sprintf(line, "\n   %s\n----------------------\n", menu_board_name(b));
     term_puts(line);
-    sprintf(line, "%u Msg, %u neu\n", n, n > lastread[b - 1] ? n - lastread[b - 1] : 0);
+    sprintf(line, L_BOARD_COUNT, n, n > lastread[b - 1] ? n - lastread[b - 1] : 0);
     term_puts(line);
-    term_puts("1 Neue Msg lesen\n"
-              "2 Alle Msg lesen\n"
-              "3 Msg Nr. lesen\n"
-              "4 Msg schreiben\n");
+    term_puts(L_BOARD_MENU);
     if (user.level >= LVL_SYSOP)
-        term_puts("5 Msg loeschen\n");
+        term_puts(L_BOARD_DELETE);
     term_puts("----------------------\n");
 }
 
@@ -76,19 +74,19 @@ static void read_range(uint8_t b, uint16_t from, uint16_t to)
     }
     save_lastread();
     if (from <= to)
-        term_puts("\n(abgebrochen)\n");
+        term_puts(L_ABORTED);
 }
 
 static uint16_t ask_no(uint16_t n)
 {
     uint16_t no;
 
-    term_puts("Nr. ==>");
+    term_puts(L_NO_PROMPT);
     if (term_getline(line, 5, 0) <= 0)
         return 0;
     no = atoi(line);
     if (no < 1 || no > n) {
-        term_puts("Gibt es nicht.\n");
+        term_puts(L_NOT_FOUND);
         return 0;
     }
     return no;
@@ -100,20 +98,20 @@ static void write_msg(uint8_t b)
     uint16_t no;
 
     if (user.level < LVL_MEMBER) {
-        term_puts(user_no ? "Du bist noch nicht freigeschaltet.\n"
-                          : "Gaeste koennen nur lesen.\n");
+        term_puts(user_no ? L_NOT_APPROVED
+                          : L_GUESTS_READ_ONLY);
         return;
     }
     if ((len = msg_compose(0)) <= 0)
         return;
     msg_use('b', b);
     if ((no = msg_save(len)) != 0) {
-        sprintf(line, "Msg Nr. %u gespeichert.\n", no);
+        sprintf(line, L_MSG_SAVED, no);
         term_puts(line);
         lastread[b - 1] = no;           /* own message isn't "new" */
         save_lastread();
     } else {
-        term_puts("Fehler beim Speichern.\n");
+        term_puts(L_SAVE_ERROR);
     }
 }
 
@@ -126,7 +124,7 @@ uint8_t board_action(uint8_t b, char key)
         if (n > lastread[b - 1])
             read_range(b, lastread[b - 1] + 1, n);
         else
-            term_puts("Keine neuen Msg.\n");
+            term_puts(L_NO_NEW_MSGS);
         return 1;
     case '2':
         read_range(b, 1, n);
@@ -142,7 +140,7 @@ uint8_t board_action(uint8_t b, char key)
         if (user.level < LVL_SYSOP)
             return 0;
         if ((no = ask_no(n)) != 0)
-            term_puts(msg_delete(no) ? "Geloescht.\n" : "Fehler.\n");
+            term_puts(msg_delete(no) ? L_DELETED : L_ERROR);
         return 1;
     }
     return 0;
@@ -165,5 +163,5 @@ void board_new_all(void)
         any = 1;
     }
     if (!any)
-        term_puts("Keine neuen Msg.\n");
+        term_puts(L_NO_NEW_MSGS);
 }

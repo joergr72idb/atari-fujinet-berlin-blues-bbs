@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "term.h"
+#include "lang.h"
 #include "store.h"
 #include "user.h"
 #include "board.h"
@@ -105,7 +106,7 @@ static const char *title(uint8_t menu)
         for (i = 0; i < n_items; ++i)
             if (items[i].type == 'M' && items[i].num == menu)
                 return items[i].label;
-    return "Hauptmenue";
+    return L_MAIN_MENU;
 }
 
 static uint8_t parent(uint8_t menu)
@@ -142,7 +143,7 @@ static void function(const char *f)
     else if (!strcmp(f, "pmwrite")) pm_write();
     else if (!strcmp(f, "pmread"))  pm_read();
     else if (!strcmp(f, "sysop"))   sysop_page();
-    else                            term_puts("Kommt bald.\n");
+    else                            term_puts(L_COMING_SOON);
 }
 
 void menu_run(void)
@@ -158,7 +159,7 @@ void menu_run(void)
                 board_show(board);
             else
                 show(menu);
-            term_puts("0=logoff  *=Hauptmenue\n");
+            term_puts(L_MENU_HINT);
             shown = 1;
         }
         user_online(line);
@@ -201,7 +202,7 @@ void menu_run(void)
             case 'T':
                 sprintf(line, BBS_DIR "texts/%s", it->arg);
                 if (!term_type_file(line))
-                    term_puts("Text nicht gefunden.\n");
+                    term_puts(L_TEXT_NOT_FOUND);
                 acted = 1;
                 break;
             case 'F':

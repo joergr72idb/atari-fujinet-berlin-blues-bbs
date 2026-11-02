@@ -1,0 +1,147 @@
+# Berlin Blues BBS - program texts, English (master list: every key lives here).
+# Translation: copy to lang/xx.txt, translate the text in quotes, build with `make BBS_LANG=xx`.
+# Rules (tools/mklang.py checks them): keep %u/%lu/%s/... in the same order, plain ASCII only
+# (no umlauts: ae oe ue ss), \n = new line, lines of max. 40 characters for Atari/C64 callers.
+# Missing keys fall back to English.
+
+# ---- Before the caller has chosen a machine: upper case only (reads the same in ASCII, ATASCII, PETSCII)
+RAW_PRESS_RETURN     = "BERLIN BLUES BOX - PLEASE PRESS <RETURN>"
+RAW_MACHINE          = "1=PC/MAC  2=AMSTRAD CPC  3=C64 ? "
+
+# ---- Answer keys: one lower-case letter (upper case is accepted too)
+KEY_YES              = "y"
+KEY_QUIT             = "q"
+KEY_DELETE           = "d"
+
+# ---- Call, login, registration
+BANNER_FALLBACK      = "\nBERLIN BLUES BOX\n\n"
+CALLER_NO            = "You are caller no. %lu\n"
+TIMEOUT              = "\nTime is up - see you next time!\n"
+MORE                 = "--More-- (RETURN/Q)"
+LOGIN_PROMPT         = "\nGuests please press <RETURN>!\nUsername ==>"
+GUEST_NAME           = "Guest"
+PW_PROMPT            = "Password ==>"
+PW_WRONG             = "Wrong.\n"
+PW_TOO_MANY          = "Too many failed attempts.\n"
+REGISTER_ASK         = "I don't know you yet. Register (Y/N)? "
+NAME_RULE            = "Name: 3-15 chars, letters/digits.\n"
+PW_HINT              = "Telnet is not encrypted: use a password\nyou don't use anywhere else!\n"
+PW_NEW               = "New password (4-16 chars) ==>"
+PW_AGAIN             = "Again ==>"
+PW_INVALID           = "Passwords invalid or not the same.\n"
+WELCOME_NEW          = "\nWelcome! You can read right away.\nYou can write as soon as the sysop\nhas approved you.\n"
+
+# ---- Status, logoff
+LEVEL_GUEST          = "GUEST"
+LEVEL_NEW            = "NEW (awaiting approval)"
+LEVEL_MEMBER         = "MEMBER"
+DATE                 = "%02u.%02u.%02u"
+STATUS_HEAD          = "\nYour status %s\n\n"
+STATUS_CALLS         = "Calls        : %03u\n"
+STATUS_LAST          = "Last call    : "
+STATUS_LEVEL         = "User level   : %u\n\n"
+SYSTEM_HEAD          = "System status\n\nDate     : "
+SYSTEM_TIME          = "\nTime     : %02u:%02u:%02u\n"
+SYSTEM_CALLERS       = "Callers  : %lu (today %u)\n"
+SYSTEM_LAST          = "Last     : %s\n"
+SYSOP_PRESENT        = "Sysop is : present\n"
+SYSOP_ABSENT         = "Sysop is : away\n"
+LOGOFF_TIME          = "\nIt is now %02u:%02u:%02u\n"
+LOGOFF_ONLINE        = "You were online for %s.\n\n"
+LOGOFF_BYE           = "See you next time...\n"
+
+# ---- User functions
+USERLIST_HEAD        = "\nNo  Name            Lvl Calls  Last\n"
+GUEST_NO_PW          = "Guests have no password.\n"
+PW_OLD               = "Old password ==>"
+PW_CHANGED           = "Password changed.\n"
+APPROVE_HEAD         = "\nNew users (awaiting approval):\n"
+APPROVE_PROMPT       = "No. to approve (RETURN=end) ==>"
+APPROVED             = "%s is approved.\n"
+BAD_NUMBER           = "Invalid number.\n"
+
+# ---- Common
+NONE                 = "none\n"
+NOT_FOUND            = "Doesn't exist.\n"
+DELETED              = "Deleted.\n"
+ERROR                = "Error.\n"
+SAVE_ERROR           = "Error while saving.\n"
+NO_PROMPT            = "No. ==>"
+
+# ---- Menus
+MAIN_MENU            = "Main menu"
+MENU_HINT            = "0=logoff  *=main menu\n"
+COMING_SOON          = "Coming soon.\n"
+TEXT_NOT_FOUND       = "Text not found.\n"
+
+# ---- Boards
+NEW_MSGS             = "\nNew msgs: "
+BOARD_COUNT          = "%u msgs, %u new\n"
+BOARD_MENU           = "1 Read new msgs\n2 Read all msgs\n3 Read msg no.\n4 Write msg\n"
+BOARD_DELETE         = "5 Delete msg\n"
+ABORTED              = "\n(aborted)\n"
+NOT_APPROVED         = "You are not approved yet.\n"
+GUESTS_READ_ONLY     = "Guests can only read.\n"
+MSG_SAVED            = "Msg no. %u saved.\n"
+NO_NEW_MSGS          = "No new msgs.\n"
+
+# ---- Messages (boards and PMs)
+MSG_HEAD             = "\nMsg %u from %s"
+MSG_DATE             = "  %02u.%02u.%02u %02u:%02u\n"
+MSG_GONE             = "(deleted)\n"
+MSG_SUBJECT          = "Subject: "
+MSG_SUBJECT_PROMPT   = "Subject ==>"
+MSG_TEXT_HINT        = "Text, max. 40 lines. End: '.' alone\n"
+MSG_FULL             = "(40 lines full)\n"
+MSG_SAVE_ASK         = "Save (Y/N)? "
+
+# ---- Personal messages
+PM_NEW               = "\nYou have %u new PMsg! (*82)\n"
+PM_NONE              = "\nThere is no mail for you\n"
+PM_SENT              = "Letter to %s delivered.\n"
+PM_GUEST             = "Guests have no mailbox -\nplease register as a user.\n"
+PM_NOT_APPROVED      = "Not approved yet. Letter to the\nsysop: 9 in the main menu.\n"
+PM_TO                = "To ==>"
+PM_UNKNOWN           = "Unknown user.\n"
+PM_TO_SYSOP          = "Letter to the sysop\n"
+PM_LIST_HEAD         = "\n No From       Date  Subject\n"
+PM_LIST_ROW          = "%c%2u %-10.10s %02u.%02u %.18s\n"
+PM_REPLY_ASK         = "Reply (Y/N)? "
+PM_EMPTY             = "Your mailbox is empty.\n"
+PM_PROMPT            = "No. to read, D+no. to delete,\nRETURN=end ==>"
+
+# ---- Sysop: chat, paging, kick (caller side)
+CHAT_START           = "\n*** The sysop is here - chat! ***\n"
+CHAT_END             = "\n*** Chat ended ***\n"
+KICKED               = "\n*** The sysop has closed the connection. ***\n"
+SYSOP_NOT_HERE       = "The sysop is not around right now.\n"
+PAGE_ASK             = "Page the sysop for a chat (Y/N)? "
+PAGING               = "Paging the sysop (any key = cancel)"
+NO_ANSWER            = "\nNo answer.\n"
+
+# ---- Sysop console on the Atari (status line max. 40 characters)
+SYS_TITLE            = "Berlin Blues BBS"
+SYS_MENU_ITEMS       = "%u menu items\n"
+SYS_LISTEN_RETRY     = "FujiNet: listen failed - retry in 10 s"
+SYS_WAITING          = "\nwaiting for a call..."
+SYS_RING             = "Incoming call!"
+SYS_HUNGUP           = "\nhung up (%lu calls)\n"
+SYS_STOPPED          = "\nBerlin Blues BBS stopped."
+SYS_LOCAL_LOGIN      = "\n[Local login]"
+SYS_DEFAULT_PW       = "WARNING: SYSOP password is 'blues'"
+SYS_USERS_CREATED    = "users.dat created (SYSOP)"
+SYS_SETUP_DELETED    = "sysop.txt deleted"
+SYS_STATUS_CALL      = " BLUES %-10.10s L%u %s %s"
+SYS_LOCAL            = "(local)"
+SYS_IN_LOGIN         = "(login)"
+SYS_ST_PRESENT       = "Sysop in"
+SYS_ST_ABSENT        = "Sysop out"
+SYS_STATUS_IDLE      = " BLUES wait  Calls %lu  Sysop %s  L A Q"
+SYS_IDLE_PRESENT     = "in"
+SYS_IDLE_ABSENT      = "out"
+SYS_PRESENT          = "\n[Sysop present]\n"
+SYS_ABSENT           = "\n[Sysop away]\n"
+SYS_CHAT             = "[Chat - end with ESC]"
+SYS_KICKED           = "[kicked]"
+SYS_PAGED            = "\n[Sysop paged - C = chat]"
+SYS_RELISTEN         = "\n[Listener reopened (%u)]\n"

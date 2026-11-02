@@ -5,6 +5,7 @@
 #include "ticks.h"
 #include "net.h"
 #include "term.h"
+#include "lang.h"
 #include "store.h"
 #include "user.h"
 #include "board.h"
@@ -14,7 +15,7 @@
 
 /* The banner comes from bbs/texts/banner.txt on the SD card (editable by the sysop);
    this one is only shown if the file is missing. */
-static const char banner[] = "\nBERLIN BLUES BOX\n\n";
+static const char banner[] = L_BANNER_FALLBACK;
 
 static char line[41];
 
@@ -29,7 +30,7 @@ static void session(void)
     term_putc('\n');
     if (!term_type_file(BBS_DIR "texts/banner.txt"))
         term_puts(banner);
-    sprintf(line, "Du bist Anrufer Nr. %lu\n", stats.total);
+    sprintf(line, L_CALLER_NO, stats.total);
     term_puts(line);
     if (!user_login())
         return;
@@ -48,7 +49,7 @@ static void local_session(void)
     user_no = 0;
     term_set_local();
     user_clock_start();
-    puts("\n[Lokale Anmeldung]");
+    puts(L_SYS_LOCAL_LOGIN);
     if (user_login()) {
         user_status();
         pm_login();
@@ -69,12 +70,12 @@ int main(void)
     POKE(0x14, 0); POKE(0x13, 0xEE); POKE(0x12, 0xFF); POKE(0x14, 0x6C);
 #endif
     sysop_init();
-    puts("Berlin Blues BBS");
+    puts(L_SYS_TITLE);
     user_init();
-    printf("%u Menuepunkte\n", menu_load());
+    printf(L_SYS_MENU_ITEMS, menu_load());
     /* 24/7: never give up on the listener - retry every 10 s (Q still quits) */
     while (net_listen()) {
-        puts("FujiNet: listen failed - neuer Versuch in 10 s");
+        puts(L_SYS_LISTEN_RETRY);
         start = clock();
         while (ELAPSED(start) < 10 * CLOCKS_PER_SEC)
             if (sysop_idle() == 'Q') {
@@ -83,14 +84,14 @@ int main(void)
             }
     }
     while (!sysop_quit) {
-        puts("\nwarte auf Anruf...");
+        puts(L_SYS_WAITING);
         for (;;) {
             if (net_ringing()) {
                 net_accept();
-                puts("Anruf!");
+                puts(L_SYS_RING);
                 session();
                 net_hangup();
-                printf("\naufgelegt (%lu Anrufe)\n", stats.total);
+                printf(L_SYS_HUNGUP, stats.total);
                 break;
             }
             k = sysop_idle();
@@ -106,6 +107,6 @@ int main(void)
     }
     net_close();
     sysop_exit();
-    puts("\nBerlin Blues BBS beendet.");
+    puts(L_SYS_STOPPED);
     return 0;
 }

@@ -8,6 +8,7 @@
 #include "fujinet-clock.h"
 #include "net.h"
 #include "term.h"
+#include "lang.h"
 #include "store.h"
 #include "user.h"
 #include "sysop.h"
@@ -29,7 +30,7 @@ static clock_t online_since;
 static uint8_t prev_last[5];
 
 static const char *const level_names[] = {
-    "GAST", "NEU (wartet auf Freigabe)", "MITGLIED", "MITGLIED", "MITGLIED", "SYSOP"
+    L_LEVEL_GUEST, L_LEVEL_NEW, L_LEVEL_MEMBER, L_LEVEL_MEMBER, L_LEVEL_MEMBER, "SYSOP"
 };
 
 void clock_now(void)
@@ -40,7 +41,7 @@ void clock_now(void)
 
 static void put_date(const uint8_t *d)
 {
-    sprintf(line, "%02u.%02u.%02u", d[0], d[1], d[2]);
+    sprintf(line, L_DATE, d[0], d[1], d[2]);
     term_puts(line);
 }
 
@@ -125,13 +126,13 @@ void user_init(void)
         pw[strcspn(pw, "\015\012")] = 0;    /* file bytes: CR/LF, not cc65 "\n" ($9B) */
     } else {
         strcpy(pw, "blues");
-        puts("WARNUNG: SYSOP-Passwort ist 'blues'");
+        puts(L_SYS_DEFAULT_PW);
     }
     u.pw = pw_hash(u.name, pw);
     store_put(USERS, 0, &u, sizeof u);
-    puts("users.dat angelegt (SYSOP)");
+    puts(L_SYS_USERS_CREATED);
     if (store_delete(SETUP_PW))         /* don't leave the password on the card */
-        puts("sysop.txt geloescht");
+        puts(L_SYS_SETUP_DELETED);
 }
 
 void stats_count_call(void)
@@ -169,14 +170,14 @@ static int ask_new_pw(void)
 {
     char again[17];
 
-    term_puts("Neues Passwort (4-16 Zeichen) ==>");
+    term_puts(L_PW_NEW);
     if (term_getline(pw, 16, 1) == KEY_GONE)
         return KEY_GONE;
-    term_puts("Nochmal ==>");
+    term_puts(L_PW_AGAIN);
     if (term_getline(again, 16, 1) == KEY_GONE)
         return KEY_GONE;
     if (strlen(pw) < 4 || strcmp(pw, again)) {
-        term_puts("Passwoerter ungueltig oder verschieden.\n");
+        term_puts(L_PW_INVALID);
         return 0;
     }
     return 1;
@@ -186,19 +187,18 @@ static uint8_t do_register(const char *name)
 {
     int r;
 
-    term_puts("Dich kenne ich noch nicht. Neu eintragen (J/N)? ");
+    term_puts(L_REGISTER_ASK);
     r = term_getc();
     if (r == KEY_GONE)
         return 0;
     term_putc('\n');
-    if (r != 'j' && r != 'J')
+    if (!term_key(r, L_KEY_YES))
         return 2;
     if (!valid_name(name)) {
-        term_puts("Name: 3-15 Zeichen, Buchstaben/Ziffern.\n");
+        term_puts(L_NAME_RULE);
         return 2;
     }
-    term_puts("Telnet ist unverschluesselt: nimm ein\n"
-              "Passwort, das du sonst nirgends nutzt!\n");
+    term_puts(L_PW_HINT);
     do {
         if ((r = ask_new_pw()) == KEY_GONE)
             return 0;
@@ -208,13 +208,11 @@ static uint8_t do_register(const char *name)
     user.pw = pw_hash(name, pw);
     user.level = LVL_NEW;
     if (!store_append(USERS, &user, sizeof user)) {
-        term_puts("Fehler beim Speichern.\n");
+        term_puts(L_SAVE_ERROR);
         return 2;
     }
     user_no = store_size(USERS) / sizeof(User);
-    term_puts("\nWillkommen! Du kannst sofort lesen.\n"
-              "Schreiben geht, sobald der Sysop dich\n"
-              "freigeschaltet hat.\n");
+    term_puts(L_WELCOME_NEW);
     return 1;
 }
 
@@ -225,12 +223,12 @@ uint8_t user_login(void)
     int r;
 
     for (;;) {
-        term_puts("\nGaeste bitte <RETURN> druecken!\nUsername ==>");
+        term_puts(L_LOGIN_PROMPT);
         if (term_getline(line, NAME_LEN, 0) == KEY_GONE)
             return 0;
         if (!line[0]) {
             memset(&user, 0, sizeof user);
-            strcpy(user.name, "Gast");
+            strcpy(user.name, L_GUEST_NAME);
             user_no = 0;
             return 1;
         }
@@ -243,15 +241,15 @@ uint8_t user_login(void)
         }
         user = u;
         for (tries = 0; tries < 3; ++tries) {
-            term_puts("Passwort ==>");
+            term_puts(L_PW_PROMPT);
             if (term_getline(pw, 16, 1) == KEY_GONE)
                 return 0;
             if (pw_hash(user.name, pw) == user.pw)
                 break;
-            term_puts("Falsch.\n");
+            term_puts(L_PW_WRONG);
         }
         if (tries == 3) {
-            term_puts("Zu viele Fehlversuche.\n");
+            term_puts(L_PW_TOO_MANY);
             return 0;
         }
         break;
@@ -271,31 +269,31 @@ uint8_t user_login(void)
 
 void user_status(void)
 {
-    sprintf(line, "\nDein Status %s\n\n", level_names[user.level]);
+    sprintf(line, L_STATUS_HEAD, level_names[user.level]);
     term_puts(line);
     if (user_no) {
-        sprintf(line, "Anrufe       : %03u\n", user.calls);
+        sprintf(line, L_STATUS_CALLS, user.calls);
         term_puts(line);
-        term_puts("Letzter Anruf: ");
+        term_puts(L_STATUS_LAST);
         if (prev_last[0])
             put_date(prev_last);
         else
             term_puts("-");
         term_putc('\n');
     }
-    sprintf(line, "Benutzerlevel: %u\n\n", user.level);
+    sprintf(line, L_STATUS_LEVEL, user.level);
     term_puts(line);
 
     clock_now();
-    term_puts("System Status\n\nDatum    : ");
+    term_puts(L_SYSTEM_HEAD);
     put_date(now);
-    sprintf(line, "\nZeit     : %02u:%02u:%02u\n", now[3], now[4], now[5]);
+    sprintf(line, L_SYSTEM_TIME, now[3], now[4], now[5]);
     term_puts(line);
-    sprintf(line, "Anrufer  : %lu (heute %u)\n", stats.total, stats.today);
+    sprintf(line, L_SYSTEM_CALLERS, stats.total, stats.today);
     term_puts(line);
-    sprintf(line, "Zuletzt  : %s\n", stats.last_caller[0] ? stats.last_caller : "-");
+    sprintf(line, L_SYSTEM_LAST, stats.last_caller[0] ? stats.last_caller : "-");
     term_puts(line);
-    term_puts(sysop_present ? "Sysop ist: anwesend\n" : "Sysop ist: abwesend\n");
+    term_puts(sysop_present ? L_SYSOP_PRESENT : L_SYSOP_ABSENT);
 }
 
 void user_online(char *buf)
@@ -310,19 +308,19 @@ void user_logoff(void)
     char t[12];
 
     clock_now();
-    sprintf(line, "\nEs ist jetzt %02u:%02u:%02u\n", now[3], now[4], now[5]);
+    sprintf(line, L_LOGOFF_TIME, now[3], now[4], now[5]);
     term_puts(line);
     user_online(t);
-    sprintf(line, "Du warst %s im System.\n\n", t);
+    sprintf(line, L_LOGOFF_ONLINE, t);
     term_puts(line);
-    term_puts("Bis zum naechsten Mal...\n");
+    term_puts(L_LOGOFF_BYE);
 }
 
 void user_list(void)
 {
     uint16_t no = 0;
 
-    term_puts("\nNr  Name            Lvl Anrufe Zuletzt\n");
+    term_puts(L_USERLIST_HEAD);
     if (!store_open(USERS))
         return;
     while (!term_abort && store_next(&u, sizeof u)) {
@@ -340,20 +338,20 @@ void user_change_pw(void)
     int r;
 
     if (!user_no) {
-        term_puts("Gaeste haben kein Passwort.\n");
+        term_puts(L_GUEST_NO_PW);
         return;
     }
-    term_puts("Altes Passwort ==>");
+    term_puts(L_PW_OLD);
     if (term_getline(pw, 16, 1) == KEY_GONE)
         return;
     if (pw_hash(user.name, pw) != user.pw) {
-        term_puts("Falsch.\n");
+        term_puts(L_PW_WRONG);
         return;
     }
     if ((r = ask_new_pw()) != 1)
         return;
     user.pw = pw_hash(user.name, pw);
-    term_puts(save_user(user_no, &user) ? "Passwort geaendert.\n" : "Fehler beim Speichern.\n");
+    term_puts(save_user(user_no, &user) ? L_PW_CHANGED : L_SAVE_ERROR);
 }
 
 void user_approve(void)
@@ -363,7 +361,7 @@ void user_approve(void)
 
     if (user.level < LVL_SYSOP)
         return;
-    term_puts("\nNeue Benutzer (warten auf Freigabe):\n");
+    term_puts(L_APPROVE_HEAD);
     if (store_open(USERS)) {
         for (no = 1; store_next(&u, sizeof u); ++no)
             if (u.level == LVL_NEW) {
@@ -374,20 +372,20 @@ void user_approve(void)
         store_close();
     }
     if (!found) {
-        term_puts("keine\n");
+        term_puts(L_NONE);
         return;
     }
     for (;;) {
-        term_puts("Nr. freischalten (RETURN=Ende) ==>");
+        term_puts(L_APPROVE_PROMPT);
         if (term_getline(line, 4, 0) <= 0)
             return;
         n = atoi(line);
         if (!n || !store_get(USERS, (uint32_t) (n - 1) * sizeof(User), &u, sizeof u) || u.level != LVL_NEW) {
-            term_puts("Ungueltige Nummer.\n");
+            term_puts(L_BAD_NUMBER);
             continue;
         }
         u.level = LVL_MEMBER;
-        sprintf(line, save_user(n, &u) ? "%s ist freigeschaltet.\n" : "Fehler.\n", u.name);
+        sprintf(line, save_user(n, &u) ? L_APPROVED : L_ERROR, u.name);
         term_puts(line);
     }
 }
