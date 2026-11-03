@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Berlin Blues BBS for Atari XL + FujiNet (telnet port 6502). Plan, phases and FujiNet findings: README.md.
+Berlin Blues BBS for Atari XL + FujiNet (telnet port 6502). Setup + customizing: README.md; plan, phases, FujiNet findings: docs/TECHNICAL.md (keep it updated).
 Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
 
 - Caller output goes through `term_puts()` with `'\n'` (= $9B) as line end; term.c converts. Raw `net_*` writes
