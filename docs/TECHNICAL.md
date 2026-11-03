@@ -250,7 +250,7 @@ so a bot can't hold the line because N2 hangs. RTCLOK counts steadily, never jum
 only quirk, the wrap, is handled by `ELAPSED`.
 
 Tested: test builds (`-DTESTWRAP`) wrap ~90 s after boot, phase 6 test 1 keeps a caller online across it.
-The first natural wrap of the live BBS (started 2026-11-03 05:59) is due Fri 2026-11-07 ~03:30 (manual test 7).
+The first natural wrap of the live BBS (restarted 2026-11-03 15:59) is due Sat 2026-11-07 ~13:12 (manual test 7).
 
 ## 24/7 hardening (Phase 6)
 
@@ -344,7 +344,7 @@ Run 2026-11-03, 8 h (06:48–14:49): **1436 calls, 1434 ok, 2 failed, 0 data pro
 | 5 | FujiNet-PC web UI `:8000` from outside | ✔ timeout – not forwarded |
 | 6a | C64 with a real terminal program: VICE 3.10 (x64sc), userport RS232 wired to `localhost:6502`, ccgmsterm v0.2 at 2400 baud (`tools/c64call.sh`) | ✔ PETSCII, case, menus fine. VICE connects as soon as ccgmsterm starts, so the 60 s pre-login limit runs from then – press RETURN right away |
 | 6b | Real Atari XL (FujiNet) and real C64 (Meatloaf) as callers | open |
-| 7 | First real RTCLOK wrap (3.9 days after the 2026-11-03 05:59 start) | open – Fri 2026-11-07 ~03:30 |
+| 7 | First real RTCLOK wrap (3.9 days after the 2026-11-03 15:59 restart) | open – Sat 2026-11-07 ~13:12 |
 
 Note for callers: a busy line looks like a hanging connection – worth saying in the announcement.
 
