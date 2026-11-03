@@ -220,6 +220,38 @@ double ring of an incoming call) for up to 30 s; C answers, otherwise "Keine Ant
 
 Memory (2026-11-01): code + data up to `$905B`, 2 KB stack, about 9 KB free below the screen.
 
+## Two clocks: RTCLOK and the FujiNet clock
+
+The BBS uses two clocks, each for what it does best:
+
+| | FujiNet clock (APETIME) | Atari RTCLOK |
+|---|---|---|
+| Answers | "What time is it?" | "How much time has passed?" |
+| Used for | dates on messages and PMs, a user's last call (`clock_get_time(…, APETIME_BINARY)` in `user.c`, stored in `msg.date`) | pre-login limits (60 s idle / 5 min total), idle limit after login, time online, sound timing |
+| Cost | one SIO call (milliseconds), needs the FujiNet to answer | one memory read |
+| Weak spots | jumps (DST switch, NTP correction), midnight | wraps every 3.9 days |
+
+**RTCLOK** is a 3-byte counter at `$12–$14` that the OS increments every frame – 50 times a second on PAL.
+After 2^24 = 16,777,216 ticks (335,544 s = **3.9 days**) it rolls over from `FFFFFF` to `000000`. A plain
+`now - start` across that wrap goes negative and, as unsigned math, becomes ~4 billion ticks: an idle caller
+looks idle for years and is kicked, or a wait loop never ends. So all time math uses
+
+```c
+#define ELAPSED(t)  ((clock() - (t)) & 0xFFFFFFUL)     /* src/ticks.h */
+```
+
+– the result is kept to 24 bits like the counter itself, so `200 - 16,777,000` comes out as 416 ticks. Correct
+for any span under 3.9 days; the longest the BBS measures is minutes.
+
+**Why not the FujiNet clock for timeouts too:** the BBS checks its timeouts constantly while it waits for
+input – an SIO call each time would cost speed and keep N2 busy; a wall clock can jump (winter time: 03:00 →
+02:00, NTP corrections) and wraps at midnight; and the limits must work even when the FujiNet answers slowly,
+so a bot can't hold the line because N2 hangs. RTCLOK counts steadily, never jumps and costs nothing – its
+only quirk, the wrap, is handled by `ELAPSED`.
+
+Tested: test builds (`-DTESTWRAP`) wrap ~90 s after boot, phase 6 test 1 keeps a caller online across it.
+The first natural wrap of the live BBS (started 2026-11-03 05:59) is due Fri 2026-11-07 ~03:30 (manual test 7).
+
 ## 24/7 hardening (Phase 6)
 
 **Item 1 – network robustness** (done 2026-11-01):
