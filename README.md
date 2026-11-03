@@ -20,6 +20,10 @@ revival.
 *The 1987 login screen, from the session transcript in Pokey Nr. 5 – shown on an (emulated) Atari XL,
 blank lines left out to fit 24 rows, surnames masked.*
 
+> **Fun fact – where the name comes from:** "Berlin Blues" is a track on **"Gold Plated"** (1976), an LP by
+> the British **Climax Blues Band** – the album with their hit "Couldn't Get It Right". The 1987 box was named
+> after that track, and the revival keeps the name.
+
 Today's Berlin Blues BBS is the communication hub of our retro-computing meetup group: boards, personal
 messages and a chat with the sysop, served by a real (or emulated) Atari.
 
