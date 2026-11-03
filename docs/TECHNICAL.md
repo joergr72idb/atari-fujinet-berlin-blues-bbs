@@ -92,6 +92,8 @@ the internet via the existing DynDNS name, port 6502. Tested from a phone on mob
 | `make reset PW=…` | delete all BBS data in `sd/bbs/` and set the sysop password for the first start |
 | `make stop` | stop the live instance |
 | `tools/emu.sh build/test/bbs.xex [sec]` | fresh test instance (FujiNet-PC on `build/testsd`) + headless atari800, waits until 6503 listens (`VIDEO=1` / `AUDIO=1` record to `build/rec%d.*`) |
+| `tools/c64call.sh [host:port]` | call the BBS from an emulated C64: VICE + ccgmsterm over the userport RS232 (default live `127.0.0.1:6502`) |
+| `tools/soak.sh [hours]` | soak test on the test instance (phase 6 item 4), log in `build/soak.log` |
 | `tools/test_all.sh` | **all tests** on the test instance, each on fresh data in `build/testsd/` (live BBS and `sd/` untouched) – about 20 min |
 | `cd tools && python3 test_phase6.py` | 24/7: idle across the clock wrap, silent + drip bots, hang-ups at every stage, FujiNet restart (right after `emu.sh`) |
 | `cd tools && python3 test_phase5.py` | sysop console: present/away, paging + chat, kick, local login, quit (`build/test/bbs-test.xex`) |
@@ -270,10 +272,50 @@ Memory (2026-11-01): code + data up to `$905B`, 2 KB stack, about 9 KB free belo
   buffers writes and doesn't report `fclose` errors, so a write "OK" alone proves little.
 - **Host backup:** `tools/backup.sh` puts a snapshot of `sd/bbs` into `backup/bbs-<date>.tar.gz` (skips when
   nothing changed, keeps 30; `backup/` is git-ignored – it holds password hashes). Hourly via cron:
-  `0 * * * * /home/joerg/claude/blues-bbs/tools/backup.sh`. Restore: `make stop`, `tar -xzf … -C sd`.
+  `0 * * * * /home/joerg/claude/blues-bbs/tools/backup.sh` (installed 2026-11-03, output in `build/backup.log`).
+  The snapshots are on the same disk – copy `backup/` elsewhere now and then. Restore: `make stop`, `tar -xzf … -C sd`.
 - Limits: `store_size` is capped at 65534 bytes by the firmware ("bytes waiting") – ~1365 messages per board
   index, 2047 users. A power cut on a real FujiNet can still damage the FAT – that's what the backup is for.
 - Tests: phase 6 test 7 (torn message/user writes), test 8 (boot without readable SD, users unchanged).
 
-Open: soak test (item 4), go-live (item 5).
+**Item 4 – soak test** (2026-11-03):
 
+*Automated* – `tools/soak.sh [hours]` (default 4, log in `build/soak.log`): fresh test data and test instance,
+4 members registered + approved, then mixed calls until the time is up – guests, members posting and reading
+back, reading all new messages (paging through or quitting), PMs between members, hang-ups at 5 stages,
+Atari (ATASCII) and C64 (PETSCII) callers, silent bots. Every 10 min a health line: answer time (p50/p95/max),
+`*.idx` without half records and with the posted message counts, `users.dat` size, `stats.dat` total = calls
+past the terminal choice, FujiNet-PC + atari800 memory, FujiNet-PC restarts. Aborts if no call succeeds for
+10 min. About 160 calls per hour.
+
+Run 2026-11-03, 8 h (06:48–14:49): **1436 calls, 1434 ok, 2 failed, 0 data problems.**
+
+- Answer time (connect → "DRUECKEN") flat all day: median 0.21 s, max per 10 min 0.26–0.38 s, once 16.5 s
+  (11:40–11:50, one call).
+- 156 + 169 posts, 137 PMs; every health check consistent (`*.idx` whole records and = posted count,
+  `users.dat` 5 records, `stats.dat` total = counted calls).
+- FujiNet-PC 12–13 MB, atari800 18–19 MB from start to end – no leak; no FujiNet-PC restart after boot.
+- The 2 failures were both posts (08:54, 13:35, of ~325): the test didn't get what it expected, the data
+  stayed consistent. Cause unknown – that run didn't log the transcript; `soak.py` now logs the last
+  expects + received text on a failure, and `SOAK_ONLY=s_post tools/soak.sh 1` runs posts only.
+  Follow-up run, posts only, 1 h (14:49–15:49): 147 posts, 0 failed, 0 data problems – not reproduced
+  (~1 in 160 posts before). Watch the next soak run's transcript.
+
+*Manual, on the live BBS* (2026-11-03, phone on mobile data via DynDNS):
+
+| # | Test | Result |
+|---|------|--------|
+| 1 | Logged in, then airplane mode (connection vanishes without TCP close) | ✔ hung up after the 5 min idle limit (07:44 call, 07:50:02 hang-up); next call 07:52 answered at once while the dead connection was still in `FIN-WAIT-1` |
+| 2 | Second caller while the line is busy | ✔ TCP connect succeeds, then silence (no busy message possible); gets "BITTE <RETURN> DRUECKEN" right after the first caller logs off |
+| 3 | Sysop present (A), caller pages via Hauptmenue 9, sysop answers (C), chat both ways, typing at the same time | ✔ "SYSOP:" / name prefixes keep the lines apart |
+| 4 | Idle limit after login | ✔ (= test 1) |
+| 5 | FujiNet-PC web UI `:8000` from outside | ✔ timeout – not forwarded |
+| 6a | C64 with a real terminal program: VICE 3.10 (x64sc), userport RS232 wired to `localhost:6502`, ccgmsterm v0.2 at 2400 baud (`tools/c64call.sh`) | ✔ PETSCII, case, menus fine. VICE connects as soon as ccgmsterm starts, so the 60 s pre-login limit runs from then – press RETURN right away |
+| 6b | Real Atari XL (FujiNet) and real C64 (Meatloaf) as callers | open |
+| 7 | First real RTCLOK wrap (3.9 days after the 2026-11-03 05:59 start) | open – Fri 2026-11-07 ~03:30 |
+
+Note for callers: a busy line looks like a hanging connection – worth saying in the announcement.
+
+**Item 5 – go-live / unattended operation:** parked 2026-11-03 – depends on whether the BBS runs on real
+hardware or in the emulator. Untracked draft for the emulator case in `drafts/` (supervisor/watchdog
+`live.sh`, systemd user service), not tested. Backup cron is installed (item 3).

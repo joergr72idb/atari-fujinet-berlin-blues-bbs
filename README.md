@@ -38,6 +38,15 @@ from a telnet session. Status line on top: caller, level, time online, sysop awa
 - Program texts in English or German (more languages: one text file)
 - Built for 24/7: timeouts against bots, survives dropped calls and FujiNet restarts, safe SD writes
 
+<p>
+<img src="docs/images/c64-1-terminal.png" width="49%" alt="C64 with ccgmsterm: the BBS asks for the caller's computer">
+<img src="docs/images/c64-2-login.png" width="49%" alt="C64: the Berlin Blues login screen in PETSCII">
+</p>
+
+*Calling from a C64 (VICE with ccgmsterm, `tools/c64call.sh`): before the caller has picked a computer the
+BBS sends plain ASCII, which a C64 shows in lower case (left); after "3=C64" everything comes in PETSCII
+(right).*
+
 ## Setup a) Emulator (Linux PC)
 
 Runs the Atari in **atari800** and the FujiNet in **FujiNet-PC** on a Linux box. This is how the BBS runs
