@@ -11,7 +11,10 @@ From 1987 to 1988 the club published **Pokey**, a disk magazine with six issues,
 
 In 1987 the club ran its own mailbox: the **"BERLIN-Blues Box-System"**, "das Informationssystem des
 Atari-Clubs Celle in Zusammenarbeit mit dem Headquarter of Independent Computer-Freaks" (HICoF). Sysop was
-Immo, callers came in at 300 baud (8N1), the software was SKY-link. Pokey Nr. 5 printed a
+Immo, callers came in at 300 baud (8N1), the software was SKY-link. The box went online the way most
+home computers did back then: through an acoustic coupler, a **Dataphon s 21 d**, with the handset of the
+standard phone of the Deutsche Bundespost pressed into its rubber cups – the **FeTAp 612**, nicknamed
+"graue Maus" (grey mouse). Pokey Nr. 5 printed a
 complete session as a transcript – it is the template for the look, the login and the menus of this
 revival.
 
@@ -23,6 +26,17 @@ blank lines left out to fit 24 rows, surnames masked.*
 > **Fun fact – where the name comes from:** "Berlin Blues" is a track on **"Gold Plated"** (1976), an LP by
 > the British **Climax Blues Band** – the album with their hit "Couldn't Get It Right". The 1987 box was named
 > after that track, and the revival keeps the name.
+
+<p>
+<img src="docs/images/fetap-612.jpg" width="49%" alt="FeTAp 612-2, the grey standard telephone of the Deutsche Bundespost">
+<img src="docs/images/dataphon-s21d.jpg" width="49%" alt="Woerltronic dataphon s 21 d acoustic coupler">
+</p>
+
+*The 1987 hardware: the FeTAp 612 "graue Maus" (left) and the Dataphon s 21 d acoustic coupler, 300 baud (right).
+Photos (not the original devices): FeTAp 612-2 by Hubert Berberich (HubiB),
+[public domain](https://commons.wikimedia.org/wiki/File:FeTAP612-2.jpg); Dataphon s 21 d by Aeroid,
+[CC BY-SA 4.0](https://commons.wikimedia.org/wiki/File:Dataphon_s_21_d_(1).jpg) – both via Wikimedia Commons,
+scaled down.*
 
 Today's Berlin Blues BBS is the communication hub of our retro-computing meetup group: boards, personal
 messages and a chat with the sysop, served by a real (or emulated) Atari.
