@@ -15,10 +15,20 @@ Immo, callers came in at 300 baud (8N1), the software was SKY-link. Pokey Nr. 5 
 complete session as a transcript – it is the template for the look, the login and the menus of this
 revival.
 
+![The 1987 login screen of the Berlin-Blues-Box](docs/images/berlin-blues-1987.png)
+
+*The 1987 login screen, from the session transcript in Pokey Nr. 5 – shown on an (emulated) Atari XL,
+blank lines left out to fit 24 rows, surnames masked.*
+
 Today's Berlin Blues BBS is the communication hub of our retro-computing meetup group: boards, personal
 messages and a chat with the sysop, served by a real (or emulated) Atari.
 
 ## What you get
+
+![Berlin Blues BBS 2026: the sysop console on the Atari during a call](docs/images/berlin-blues-2026.png)
+
+*Berlin Blues BBS today: the sysop console on the Atari (atari800 + FujiNet-PC) while SYSOP writes a message
+from a telnet session. Status line on top: caller, level, time online, sysop away.*
 
 - Login like 1987 ("Gaeste bitte <RETURN> druecken!"), guests, registration, new users need sysop approval
   before they can write
