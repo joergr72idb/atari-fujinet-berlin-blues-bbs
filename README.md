@@ -62,6 +62,18 @@ Not in the language file, because the sysop edits them on the SD card: the banne
 (`bbs/texts/banner.txt`), help texts (`bbs/texts/*.txt`) and menu names (`bbs/menus.txt`).
 The tests check the German texts, so test builds are always German (`build/lang/de`).
 
+## Settings (`bbs/bbs.cfg`)
+
+`sd/bbs/bbs.cfg` holds site settings as `key = value` lines (`#` = comment), read once at boot – restart the
+BBS (`make run`) after a change. The sysop screen shows the port in use ("Port 6502"); bad lines are reported
+there too. Missing file or invalid value → compiled-in default.
+
+| key | default | |
+|---|---|---|
+| `port` | 6502 (test builds 6503) | TCP port for callers. Router forward and ufw must match. `8000` is refused (FujiNet-PC web UI). |
+
+More settings (idle limits, time zone – `TZ` is still compiled in) can go here later.
+
 ## Online (emulator on the dev box)
 
 Running from `make run` on the dev box (LAN `<LAN-IP>`, `eno1` MAC `<MAC>`), reachable from

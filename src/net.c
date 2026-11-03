@@ -1,4 +1,5 @@
-/* Caller connection over FujiNet: TCP listener on port 6502 (test builds: BBS_PORT=6503), buffered I/O. */
+/* Caller connection over FujiNet: TCP listener on port 6502 (test builds: BBS_PORT=6503, bbs.cfg: port = n),
+   buffered I/O. */
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
@@ -12,7 +13,16 @@
 #endif
 #define STR_(x) #x
 #define STR(x) STR_(x)
-#define LISTEN "N1:TCP://:" STR(BBS_PORT) "/"
+
+/* listener spec; the port can be changed at boot by bbs.cfg (net_set_port) */
+static char LISTEN[24] = "N1:TCP://:" STR(BBS_PORT) "/";
+uint16_t net_port = BBS_PORT;
+
+void net_set_port(uint16_t port)
+{
+    net_port = port;
+    sprintf(LISTEN, "N1:TCP://:%u/", port);
+}
 
 uint8_t net_telnet = 1;
 

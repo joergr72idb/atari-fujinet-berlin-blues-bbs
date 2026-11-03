@@ -10,6 +10,8 @@
 extern uint8_t net_telnet;      /* filter telnet IAC sequences from input */
 extern uint16_t net_relistens;  /* times the listener had to be reopened */
 
+extern uint16_t net_port;       /* TCP port of the listener */
+void net_set_port(uint16_t port); /* before net_listen() */
 uint8_t net_listen(void);       /* open the listener, 0 = ok */
 uint8_t net_ringing(void);      /* a caller is waiting to be accepted (reopens a lost listener) */
 void net_accept(void);

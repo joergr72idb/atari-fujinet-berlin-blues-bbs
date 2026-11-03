@@ -1,5 +1,6 @@
 /* Berlin Blues BBS - main loop. */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <peekpoke.h>
 #include "ticks.h"
@@ -18,6 +19,38 @@
 static const char banner[] = L_BANNER_FALLBACK;
 
 static char line[41];
+
+/* bbs/bbs.cfg on the SD card: "key = value" lines, # comments. Read once at boot.
+   port = TCP port for callers (default 6502; never 8000 = FujiNet-PC web UI). */
+static void cfg_load(void)
+{
+    char *v, *e;
+    long n;
+
+    if (!store_open(BBS_DIR "bbs.cfg"))
+        return;
+    while (store_gets(line, sizeof line - 1) >= 0) {
+        if (!line[0] || line[0] == '#')
+            continue;
+        if (!(v = strchr(line, '=')))
+            v = line + strlen(line);
+        else
+            *v++ = 0;
+        for (e = line + strlen(line); e > line && (e[-1] == ' ' || e[-1] == '\t'); )
+            *--e = 0;                   /* "port  " -> "port" */
+        while (*v == ' ' || *v == '\t')
+            ++v;
+        if (!strcmp(line, "port")) {
+            n = atol(v);
+            if (n >= 1 && n <= 65535L && n != 8000)
+                net_set_port((uint16_t) n);
+            else
+                printf(L_SYS_CFG_BAD, line, v);
+        } else
+            printf(L_SYS_CFG_UNKNOWN, line);
+    }
+    store_close();
+}
 
 static void session(void)
 {
@@ -83,6 +116,8 @@ int main(void)
             }
     }
     printf(L_SYS_MENU_ITEMS, k);
+    cfg_load();
+    printf(L_SYS_PORT, net_port);
     user_init();
     /* 24/7: never give up on the listener - retry every 10 s (Q still quits) */
     while (net_listen()) {

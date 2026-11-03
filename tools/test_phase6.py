@@ -43,8 +43,8 @@ def next_call(name):
     c.close()
     time.sleep(3)
 
-def listening():
-    return ':6503 ' in subprocess.run(['ss', '-ltn'], capture_output=True, text=True).stdout
+def listening(port=6503):
+    return ':%d ' % port in subprocess.run(['ss', '-ltn'], capture_output=True, text=True).stdout
 
 # 1: logged-in caller idle across the clock wrap (~90 s after boot) - must not be kicked
 c = guest('1 Gast idle ueber Clock-Wrap')
@@ -213,11 +213,8 @@ assert len(users) == 64 and users[32:37] == b'Bert\0', users
 c = Call('7d Bert wieder'); c.expect('DRUECKEN'); c.send('\r\n'); c.expect('1=PC'); c.send('1')
 c.expect('Username ==>'); c.send('Bert\r\n'); c.expect('Passwort ==>'); c.send('bert2026\r\n'); bye(c)
 
-# 8: SD not readable at boot (FujiNet still coming up) - the BBS waits instead of setting up users
-assert not (SD / 'sysop.txt').exists(), 'sysop.txt should be gone after the first start'
-(SD / 'menus.txt').rename(SD / 'menus.off')
-try:
-    # full restart of the test instance (no old listener can linger), menus.txt missing
+def restart_instance():
+    """Full restart of the test instance (FujiNet-PC first, like make run) - no old listener can linger."""
     subprocess.run([str(ROOT / 'tools/inst.sh'), 'test', 'stop'])
     subprocess.Popen('cd build/fujinet-test && exec nohup ./run-fujinet -u http://127.0.0.1:8001 '
                      '>> ../fujinet-test.log 2>&1 < /dev/null', shell=True, cwd=ROOT, start_new_session=True)
@@ -225,6 +222,12 @@ try:
     subprocess.Popen('SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy exec nohup timeout 900 ../atari-dev/opt/atari800/bin/atari800 '
                      '-config atari800.cfg -xl -netsio 9998 -run build/test/bbs.xex >> build/emu.log 2>&1 < /dev/null',
                      shell=True, cwd=ROOT, start_new_session=True)
+
+# 8: SD not readable at boot (FujiNet still coming up) - the BBS waits instead of setting up users
+assert not (SD / 'sysop.txt').exists(), 'sysop.txt should be gone after the first start'
+(SD / 'menus.txt').rename(SD / 'menus.off')
+try:
+    restart_instance()                      # menus.txt missing
     time.sleep(25)
     assert not listening(), 'BBS listens without readable SD'
     print('  no listener while the SD is unreadable (25 s)')
@@ -237,4 +240,24 @@ c = sysop('8 Sysop nach SD-Wartezeit'); bye(c)
 after = (SD / 'users.dat').read_bytes()
 same = lambda d: [d[i:i + 20] for i in range(0, len(d), 32)]    # name + password hash per record
 assert len(after) == len(users) and same(after) == same(users), 'users.dat records changed'
+
+# 9: bbs.cfg sets the port (read at boot); invalid values and 8000 (FujiNet-PC web UI) are refused
+cfg = SD / 'bbs.cfg'
+try:
+    cfg.write_text('# test\nport = 6504\n')
+    restart_instance()
+    t0 = time.time()
+    while not listening(6504) and time.time() - t0 < 40:
+        time.sleep(0.5)
+    assert listening(6504) and not listening(6503), 'port 6504 from bbs.cfg not used'
+    print('  listening on 6504 (bbs.cfg) after %.0f s' % (time.time() - t0))
+    c = Call('9a Anruf auf 6504', port=6504); c.expect('DRUECKEN'); c.close(); time.sleep(3)
+    cfg.write_text('port = 8000\nfoo = 1\n')
+    restart_instance()
+    t = wait_listening(time.time(), 40)
+    assert listening(), 'port = 8000 not refused (BBS not back on 6503)'   # 8000 itself = live web UI
+    print('  port = 8000 refused, back on 6503 after %.0f s' % t)
+finally:
+    cfg.unlink(missing_ok=True)
+c = guest('9b Anruf auf 6503'); bye(c)
 print('ALL OK')
