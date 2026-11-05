@@ -139,4 +139,6 @@ agree on special characters.
 
 - [`docs/TECHNICAL.md`](docs/TECHNICAL.md) – how it works: phases, FujiNet findings, data formats, the
   24/7 hardening, tests and make targets
+- [`docs/pap/pap.pdf`](docs/pap/pap.pdf) – program flowcharts (PAP, DIN 66001): main loop, call, login,
+  menu navigation, key input + sysop console
 - [`CLAUDE.md`](CLAUDE.md) – notes for working on the code
