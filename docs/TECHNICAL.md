@@ -310,6 +310,11 @@ The first natural wrap of the live BBS (restarted 2026-11-03 15:59) is due Sat 2
   nothing changed, keeps 30; `backup/` is git-ignored – it holds password hashes). Hourly via cron:
   `0 * * * * /home/joerg/claude/blues-bbs/tools/backup.sh` (installed 2026-11-03, output in `build/backup.log`).
   The snapshots are on the same disk – copy `backup/` elsewhere now and then. Restore: `make stop`, `tar -xzf … -C sd`.
+- **Log rotation:** FujiNet-PC writes ~15 MB/h of SIO debug lines to `build/fujinet.log` (built in, can't be turned
+  off). `tools/logrotate.sh` runs the system logrotate with its own config + state in `build/` (no root): at 100 MB
+  (`SIZE`) the log is copied to `fujinet.log-<date>.gz` and truncated (`copytruncate` – FujiNet-PC keeps the file
+  open with O_APPEND, no restart needed), 10 old logs kept (`KEEP`); same for `fujinet-test.log`. Hourly via cron:
+  `5 * * * * /home/joerg/claude/blues-bbs/tools/logrotate.sh`. First run 2026-11-05: 267 MB -> 36 MB gz.
 - Limits: `store_size` is capped at 65534 bytes by the firmware ("bytes waiting") – ~1365 messages per board
   index, 2047 users. A power cut on a real FujiNet can still damage the FAT – that's what the backup is for.
 - Tests: phase 6 test 7 (torn message/user writes), test 8 (boot without readable SD, users unchanged).
@@ -354,4 +359,4 @@ Note for callers: a busy line looks like a hanging connection – worth saying i
 
 **Item 5 – go-live / unattended operation:** parked 2026-11-03 – depends on whether the BBS runs on real
 hardware or in the emulator. Untracked draft for the emulator case in `drafts/` (supervisor/watchdog
-`live.sh`, systemd user service), not tested. Backup cron is installed (item 3).
+`live.sh`, systemd user service), not tested. Backup cron is installed (item 3), log rotation exists (`tools/logrotate.sh`).

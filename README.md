@@ -91,6 +91,8 @@ online today.
    no login. Test from outside your LAN, e.g. a phone on mobile data.
 6. **Backup:** `tools/backup.sh` saves the BBS data into `backup/`; run it hourly from cron:
    `0 * * * * /path/to/blues-bbs/tools/backup.sh`.
+   FujiNet-PC's log grows ~15 MB/h; `tools/logrotate.sh` keeps it small (no restart needed), also hourly:
+   `5 * * * * /path/to/blues-bbs/tools/logrotate.sh`.
 
 ## Setup b) Real hardware
 
