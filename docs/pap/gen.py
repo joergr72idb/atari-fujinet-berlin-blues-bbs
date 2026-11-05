@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+"""PAP (DIN 66001 flowcharts) of the Berlin Blues BBS -> pap.pdf. Needs graphviz (dot) + pdfunite."""
+import subprocess, sys, os, html
+
+HEAD = '''digraph G {
+ graph [fontname="Helvetica", fontsize=20, labelloc=t, labeljust=l, nodesep=0.35, ranksep=0.32,
+        size="7.8,10.8", pad=0.3, splines=polyline, label=<<B>%s</B><BR/><FONT POINT-SIZE="11">%s</FONT><BR/> >];
+ node  [fontname="Helvetica", fontsize=11, shape=box, width=2.2, height=0.45, margin="0.12,0.06"];
+ edge  [fontname="Helvetica", fontsize=10, arrowsize=0.7];
+'''
+def esc(s): return html.escape(s).replace("\\n", "<BR/>")
+
+class P:
+    def __init__(s, name, title, sub): s.name, s.out = name, [HEAD % (esc(title), esc(sub))]
+    def t(s, i, l):  s.out.append(f' {i} [shape=box, style=rounded, label="{l}"];')          # terminal
+    def p(s, i, l):  s.out.append(f' {i} [label="{l}"];')                                    # process
+    def io(s, i, l): s.out.append(f' {i} [shape=parallelogram, label="{l}"];')               # input/output
+    def d(s, i, l):  s.out.append(f' {i} [shape=diamond, width=2.6, height=0.9, margin=0, label="{l}"];')  # decision
+    def sub(s, i, l):                                                                        # subroutine call
+        s.out.append(f' {i} [shape=plain, label=<<TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5">'
+                     f'<TR><TD WIDTH="7"></TD><TD>{esc(l)}</TD><TD WIDTH="7"></TD></TR></TABLE>>];')
+    def c(s, i, l):  s.out.append(f' {i} [shape=circle, width=0.35, fixedsize=true, label="{l}"];')  # connector
+    def e(s, a, b, l=None, **kw):
+        if kw.pop('constraint', None) == 'false':      # jump back -> DIN connector pair
+            s.cn = getattr(s, 'cn', {})
+            if b not in s.cn:
+                s.cn[b] = chr(ord('A') + len(s.cn))
+                s.c(f'in_{b}', s.cn[b]); s.out.append(f' in_{b} -> {b};')
+            s.k = getattr(s, 'k', 0) + 1
+            s.c(f'out{s.k}', s.cn[b]); a, b = a, f'out{s.k}'
+        attrs = ([f'label=" {l} "'] if l else []) + [f'{k}="{v}"' for k, v in kw.items()]
+        s.out.append(f' {a} -> {b}' + (f' [{", ".join(attrs)}]' if attrs else '') + ';')
+    def raw(s, x): s.out.append(' ' + x)
+    def render(s):
+        s.out.append('}')
+        dot = f'{s.name}.dot'
+        open(dot, 'w').write('\n'.join(s.out) + '\n')
+        subprocess.run(['dot', '-Tpdf', dot, '-o', f'{s.name}.pdf'], check=True)
+        os.remove(dot)
+        return f'{s.name}.pdf'
+
+pages = []
+
+# ---- 1: main() -------------------------------------------------------------------------
+g = P('p1_main', '1  Main program  main()', 'src/bbs.c  -  boot, SD wait, listener, idle loop')
+g.t('start', 'Start\\n(bbs.xex loaded)')
+g.p('init', 'SOUNDR off (no SIO beeps)\\nsysop_init(): console screen')
+g.sub('mload', 'menu_load(): bbs/menus.txt')
+g.d('sdok', 'menu items\\nloaded?')
+g.io('sdwait', 'Console: \\"waiting for SD\\"')
+g.sub('idle1', 'sysop_idle() for 5 s')
+g.d('q1', 'key Q?')
+g.sub('cfg', 'cfg_load(): bbs/bbs.cfg\\n(port, never 8000)')
+g.sub('uinit', 'user_init(): users.dat,\\nstats.dat (create SYSOP if new)')
+g.sub('listen', 'net_listen(): TCP listener\\non N: port (default 6502)')
+g.d('lok', 'listener\\nopen?')
+g.io('lretry', 'Console: \\"retry listen\\"')
+g.sub('idle2', 'sysop_idle() for 10 s')
+g.d('q2', 'key Q?')
+g.d('quit', 'sysop_quit\\nset?')
+g.io('wait', 'Console: \\"waiting for call\\"')
+g.d('ring', 'net_ringing():\\ncaller connected?')
+g.sub('accept', 'net_accept()')
+g.sub('sess', 'session()  -> page 2')
+g.sub('hang', 'net_hangup()\\nconsole: call count')
+g.sub('sidle', 'sysop_idle(): console status,\\nA = toggle sysop present')
+g.d('kl', 'key L?')
+g.sub('local', 'local_session()  -> page 2')
+g.d('kq', 'key Q?')
+g.p('setq', 'sysop_quit = 1')
+g.sub('close', 'net_close(), sysop_exit()')
+g.t('end', 'End')
+g.e('start','init'); g.e('init','mload'); g.e('mload','sdok')
+g.e('sdok','sdwait','no'); g.e('sdwait','idle1'); g.e('idle1','q1')
+g.e('q1','mload','no', constraint='false'); g.e('q1','close','yes')
+g.e('sdok','cfg','yes'); g.e('cfg','uinit'); g.e('uinit','listen'); g.e('listen','lok')
+g.e('lok','lretry','no'); g.e('lretry','idle2'); g.e('idle2','q2')
+g.e('q2','listen','no', constraint='false'); g.e('q2','close','yes')
+g.e('lok','quit','yes')
+g.e('quit','wait','no'); g.e('quit','close','yes')
+g.e('wait','ring'); g.e('ring','accept','yes'); g.e('accept','sess'); g.e('sess','hang')
+g.e('hang','quit', constraint='false')
+g.e('ring','sidle','no'); g.e('sidle','kl'); g.e('kl','local','yes')
+g.e('local','quit', constraint='false')
+g.e('kl','kq','no'); g.e('kq','setq','yes'); g.e('setq','quit', constraint='false')
+g.e('kq','ring','no', constraint='false')
+g.e('close','end')
+pages.append(g.render())
+
+# ---- 2: session() / local_session() ------------------------------------------------------
+g = P('p2_session', '2  Call  session()  /  local_session()', 'src/bbs.c, term.c, user.c, pm.c, board.c')
+g.t('start', 'session()\\n(remote caller)')
+g.p('clr', 'clear user record\\nlimits: login idle / total time')
+g.io('askret', 'Output: \\"press RETURN\\"\\nring sound on console')
+g.io('key', 'Input: first key')
+g.d('gone1', 'caller gone /\\ntimeout?')
+g.d('atari', 'ATASCII EOL\\n($9B)?')
+g.p('tatari', 'mode = ATARI\\n(40 columns)')
+g.d('cr', 'CR / LF?')
+g.io('askm', 'Output: machine menu\\n1 PC  2 Atari  3 C64')
+g.io('km', 'Input: 1..3')
+g.p('tmode', 'set mode: PC (80 col, telnet\\nWILL ECHO/SGA), Atari, C64 (PETSCII)\\nswallow trailing CR/LF, clear screen')
+g.sub('count', 'stats_count_call(): caller no. + 1')
+g.io('banner', 'Output: texts/banner.txt\\n+ caller number')
+g.sub('login', 'user_login()  -> page 3')
+g.d('logok', 'login\\nsuccessful?')
+g.p('lim', 'limits: normal idle timeout,\\nno total limit')
+g.sub('status', 'user_status(): last call, level')
+g.sub('pml', 'pm_login(): new PMs?')
+g.sub('bl', 'board_login(): new messages per board')
+g.sub('menu', 'menu_run()  -> page 4')
+g.t('ret', 'Return\\n(main: net_hangup)')
+g.t('lstart', 'local_session()\\n(sysop key L)')
+g.p('lset', 'terminal = Atari screen/keyboard\\nstart user clock')
+g.e('start','clr'); g.e('clr','askret'); g.e('askret','key'); g.e('key','gone1')
+g.e('gone1','ret','yes'); g.e('gone1','atari','no')
+g.e('atari','tatari','yes'); g.e('atari','cr','no')
+g.e('cr','key','no', constraint='false'); g.e('cr','askm','yes'); g.e('askm','km'); g.e('km','tmode')
+g.e('tatari','tmode', label='(drop line end)')
+g.e('tmode','count'); g.e('count','banner'); g.e('banner','login'); g.e('login','logok')
+g.e('logok','ret','no'); g.e('logok','lim','yes'); g.e('lim','status')
+g.e('status','pml'); g.e('pml','bl'); g.e('bl','menu'); g.e('menu','ret')
+g.e('lstart','lset'); g.e('lset','login', style='dashed', label='then same as\\nremote, from here')
+pages.append(g.render())
+
+# ---- 3: user_login() ---------------------------------------------------------------------
+g = P('p3_login', '3  Login  user_login()', 'src/user.c')
+g.t('start', 'user_login()')
+g.io('askn', 'Output: \\"Name:\\"\\nInput: name')
+g.d('gone', 'caller gone?')
+g.d('empty', 'name empty?')
+g.p('guest', 'user = GUEST\\n(level 0, nothing saved)')
+g.d('known', 'name in\\nusers.dat?')
+g.io('askreg', 'Output: \\"register?\\"\\nInput: Y/N')
+g.d('yes', 'yes?')
+g.d('valid', 'name valid?')
+g.io('pw2', 'Input: new password twice\\n(until they match)')
+g.p('newu', 'new record: level NEW\\n(waits for sysop approval)')
+g.d('saved', 'saved in next\\nfree slot?')
+g.io('welcome', 'Output: welcome text')
+g.p('tries', 'tries = 0')
+g.io('askpw', 'Output: \\"Password:\\"\\nInput: password (hidden)')
+g.d('pwok', 'hash(name,pw)\\n= stored hash?')
+g.p('inc', 'tries + 1\\nOutput: \\"wrong\\"')
+g.d('three', 'tries = 3?')
+g.p('upd', 'last call = now (APETIME)\\ncalls + 1, save user\\nstats: last caller')
+g.t('ok', 'Return 1 (logged in)')
+g.t('fail', 'Return 0 (hang up)')
+g.e('start','askn'); g.e('askn','gone'); g.e('gone','fail','yes'); g.e('gone','empty','no')
+g.e('empty','guest','yes'); g.e('guest','ok')
+g.e('empty','known','no')
+g.e('known','askreg','no'); g.e('askreg','yes'); g.e('yes','askn','no', constraint='false')
+g.e('yes','valid','yes'); g.e('valid','askn','no (name rule)', constraint='false')
+g.e('valid','pw2','yes'); g.e('pw2','newu'); g.e('newu','saved')
+g.e('saved','askn','no (save error)', constraint='false'); g.e('saved','welcome','yes'); g.e('welcome','upd')
+g.e('known','tries','yes'); g.e('tries','askpw'); g.e('askpw','pwok')
+g.e('pwok','upd','yes'); g.e('pwok','inc','no'); g.e('inc','three')
+g.e('three','askpw','no', constraint='false'); g.e('three','fail','yes')
+g.e('upd','ok')
+pages.append(g.render())
+
+# ---- 4: menu_run() -----------------------------------------------------------------------
+g = P('p4_menu', '4  Menu navigation  menu_run()', 'src/menu.c, board.c  -  digits select, * = main menu, RETURN = back, 0 = logoff; chains like *42 work')
+g.t('start', 'menu_run()')
+g.p('init', 'menu = 0 (main), board = 0\\nshown = 0')
+g.d('shown', 'shown?')
+g.d('inb', 'in a board?')
+g.io('bshow', 'Output: board_show()\\n(board menu, msg count)')
+g.io('mshow', 'Output: menu items\\n(only user level >= item level)')
+g.io('prompt', 'Output: online time + \\"=>\\"\\nInput: line (max 20 chars)')
+g.d('gone', 'caller gone /\\ntimeout / kicked?')
+g.d('emp', 'line empty\\n(RETURN)?')
+g.p('back', 'board? -> leave board\\nelse menu = parent menu\\nshown = 0')
+g.p('next', 'take next character ch\\nacted = 0')
+g.d('more', 'character left\\nand not acted?')
+g.d('star', 'ch = * ?')
+g.p('home', 'menu = 0, board = 0')
+g.d('zero', 'ch = 0 ?')
+g.sub('logoff', 'user_logoff(): save, goodbye')
+g.d('inb2', 'in a board?')
+g.sub('bact', 'board_action(): 1 new, 2 all,\\n3 read no., 4 write, 5 delete (sysop)')
+g.d('find', 'item for ch in\\nmenu + level ok?')
+g.d('type', 'item type?')
+g.p('tm', 'M: menu = submenu')
+g.p('tb', 'B: board = board no.')
+g.io('tt', 'T: Output text file\\nbbs/texts/<arg>')
+g.sub('tf', 'F: function: status, users, passwd,\\napprove, new, pmwrite, pmread, sysop')
+g.p('acted', 'acted = 1')
+g.p('setshown', 'shown = acted\\n(after an action keep prompt,\\nelse show new menu)')
+g.t('ret', 'Return')
+g.e('start','init'); g.e('init','shown')
+g.e('shown','inb','no'); g.e('inb','bshow','yes'); g.e('inb','mshow','no')
+g.e('bshow','prompt'); g.e('mshow','prompt'); g.e('shown','prompt','yes')
+g.e('prompt','gone'); g.e('gone','ret','yes'); g.e('gone','emp','no')
+g.e('emp','back','yes'); g.e('back','shown', constraint='false')
+g.e('emp','next','no'); g.e('next','more')
+g.e('more','setshown','no'); g.e('setshown','shown', constraint='false')
+g.e('more','star','yes'); g.e('star','home','yes'); g.e('home','more', constraint='false')
+g.e('star','zero','no'); g.e('zero','logoff','yes'); g.e('logoff','ret')
+g.e('zero','inb2','no'); g.e('inb2','bact','yes'); g.e('bact','more', label='acted = result', constraint='false')
+g.e('inb2','find','no'); g.e('find','setshown','no', constraint='false'); g.e('find','type','yes')
+for n in ('tm','tb','tt','tf'): g.e('type', n)
+g.e('tm','more', constraint='false'); g.e('tb','more', constraint='false')
+g.e('tt','acted'); g.e('tf','acted'); g.e('acted','more', constraint='false')
+pages.append(g.render())
+
+# ---- 5: input + sysop console ------------------------------------------------------------
+g = P('p5_input', '5  Key input with timeout and sysop console  raw_getc() / sysop_poll()',
+      'src/term.c, sysop.c  -  every wait for a caller key also serves the sysop console')
+g.t('start', 'raw_getc()')
+g.p('t0', 'idle timer = now')
+g.d('local', 'local session?')
+g.io('lkey', 'Input: Atari keyboard\\n(update console status)')
+g.t('retk', 'Return key')
+g.sub('poll', 'sysop_poll(): console status, sysop key')
+g.d('sk', 'sysop key?')
+g.p('pres', 'A: toggle sysop present')
+g.sub('chat', 'C: chat()  sysop <-> caller')
+g.d('chend', 'chat ended\\nwith kick?')
+g.p('sq', 'Q: sysop_quit = 1\\n(BBS stops after call)')
+g.sub('kick', 'K: kick() - end call')
+g.t('gone', 'Return KEY_GONE\\n(call ends)')
+g.sub('ng', 'net_getc(): next byte from FujiNet')
+g.d('ngone', 'connection\\nclosed?')
+g.d('byte', 'byte received?')
+g.d('to', 'idle time or\\ntotal time exceeded?\\n(ELAPSED, wrap-safe)')
+g.io('tout', 'Output: \\"timeout\\"\\nnet_hangup()')
+g.e('start','t0'); g.e('t0','local'); g.e('local','lkey','yes'); g.e('lkey','retk')
+g.e('local','poll','no'); g.e('poll','sk')
+g.e('sk','pres','A'); g.e('sk','chat','C'); g.e('sk','sq','Q'); g.e('sk','kick','K')
+g.e('sq','kick'); g.e('kick','gone')
+g.e('chat','chend'); g.e('chend','gone','yes'); g.e('chend','ng','no')
+g.e('pres','ng'); g.e('sk','ng','none')
+g.e('ng','ngone'); g.e('ngone','gone','yes'); g.e('ngone','byte','no')
+g.e('byte','retk','yes'); g.e('byte','to','no')
+g.e('to','tout','yes'); g.e('tout','gone'); g.e('to','poll','no', constraint='false')
+pages.append(g.render())
+
+# ---- legend ------------------------------------------------------------------------------
+g = P('p0_legend', 'Berlin Blues BBS - program flowcharts (PAP, DIN 66001 / ISO 5807)',
+      'Atari XL + FujiNet, cc65 - single line telnet BBS.  Pages: 1 main  2 call  3 login  4 menu  5 input/sysop')
+items = [('t','Terminal: start / end / return'), ('p','Process (operation)'), ('d','Decision (branch)'),
+         ('io','Input / output (caller terminal or Atari console)'), ('sub','Subroutine call (detail on another page or in code)'),
+         ('c','Connector: the flow continues at the circle with the same letter')]
+for n,(f,txt) in enumerate(items):
+    getattr(g, f)(f's{n}', {'c': 'A', 'sub': 'function()'}.get(f, ''))
+    g.raw(f'x{n} [shape=none, width=4, label="{txt}"]; {{rank=same; s{n}; x{n};}} s{n} -> x{n} [style=invis];')
+    if n: g.raw(f's{n-1} -> s{n} [style=invis];')
+g.raw('note [shape=note, width=6, label="Every wait for a caller key (page 5) also serves the sysop console:\\nA = sysop present, C = chat, K = kick caller, L = local login, Q = quit BBS.\\nAll times use ELAPSED() so the RTCLOK wrap every 3.9 days is harmless."];')
+g.raw(f's{len(items)-1} -> note [style=invis];')
+pages.insert(0, g.render())
+
+subprocess.run(['pdfunite', *pages, 'tmp.pdf'], check=True)
+subprocess.run(['gs', '-q', '-o', 'pap.pdf', '-sDEVICE=pdfwrite', '-sPAPERSIZE=a4', '-dFIXEDMEDIA', '-dPDFFitPage', 'tmp.pdf'], check=True)
+os.remove('tmp.pdf')
+for f in pages: os.remove(f)
+print('pap.pdf')

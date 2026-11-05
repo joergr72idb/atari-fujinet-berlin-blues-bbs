@@ -3,6 +3,10 @@
 How the BBS is built and why: phases, FujiNet findings, data formats, the 24/7 hardening, tests and make
 targets. Setup and customizing: [README](../README.md).
 
+**Program flowcharts (PAP, DIN 66001):** [docs/pap/pap.pdf](pap/pap.pdf) - main loop, call, login, menu
+navigation, key input + sysop console. Rebuild after code changes: `cd docs/pap && python3 gen.py` (needs Graphviz
+`dot`, `pdfunite`, `gs`).
+
 - C with cc65 (`-t atari`) + fujinet-lib, toolchain from `../atari-dev`.
 - Data on the FujiNet SD card under `/bbs/` (here: `sd/bbs/`, served by our own FujiNet-PC in `opt/fujinet-pc`).
 - Callers: PC/Mac/phone telnet (ASCII), Atari 8-bit (ATASCII), C64 (PETSCII), Schneider CPC (ASCII).
