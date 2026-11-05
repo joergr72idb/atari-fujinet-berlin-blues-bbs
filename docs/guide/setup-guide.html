@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Berlin Blues BBS - Setup and Build Guide</title>
+<!-- Source of docs/guide/setup-guide.pdf. Rebuild: docs/guide/mkpdf.sh (headless Chrome). -->
+<style>
+  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  body { font-family: "DejaVu Sans", Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.42; color: #111; }
+  h1 { font-size: 22pt; margin: 0 0 4pt 0; }
+  h2 { font-size: 14pt; margin: 18pt 0 6pt 0; border-bottom: 1.5pt solid #222; padding-bottom: 2pt; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 12pt 0 4pt 0; page-break-after: avoid; }
+  p, li { margin: 3pt 0; }
+  ul, ol { margin: 3pt 0 3pt 0; padding-left: 18pt; }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: #f1f1f1; padding: 0 2pt; border-radius: 2pt; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 8.4pt; line-height: 1.32; background: #f4f4f4;
+        border-left: 3pt solid #888; padding: 6pt 8pt; margin: 5pt 0 7pt 0; white-space: pre-wrap; page-break-inside: avoid; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 8pt 0; page-break-inside: avoid; font-size: 9.2pt; }
+  th, td { border: 0.6pt solid #999; padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #e6e6e6; }
+  .sub { color: #444; font-size: 11pt; margin-bottom: 10pt; }
+  .note { border: 0.8pt solid #999; background: #fafafa; padding: 5pt 8pt; margin: 6pt 0; page-break-inside: avoid; }
+  .warn { border: 1pt solid #b00; background: #fff4f4; padding: 5pt 8pt; margin: 6pt 0; page-break-inside: avoid; }
+  .toc { columns: 2; column-gap: 20pt; font-size: 10pt; }
+  .toc li { margin: 1pt 0; }
+  .brk { page-break-before: always; }
+  .meta { font-size: 8.5pt; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>Berlin Blues BBS</h1>
+<div class="sub">Setup and build guide: cc65 + fujinet-lib, atari800 + FujiNet-PC, Altirra + FujiNet,
+building <code>bbs.xex</code>, customizing</div>
+<p class="meta">Atari XL/XE + FujiNet, single-line telnet BBS (port 6502). Linux host (tested on Ubuntu).
+Versions as used: cc65 V2.19 (git), fujinet-lib 5.1.0, atari800 7.2.1, FujiNet-PC v1.6, Altirra 4.40.
+Program flow: <code>docs/pap/pap.pdf</code>. Internals: <code>docs/TECHNICAL.md</code>. As of 2026-11-05.</p>
+
+<h3>Contents</h3>
+<ol class="toc">
+  <li>Overview and folder layout</li>
+  <li>Prerequisites</li>
+  <li>cc65 (C compiler)</li>
+  <li>fujinet-lib</li>
+  <li>atari800 with NetSIO</li>
+  <li>FujiNet-PC</li>
+  <li>Altirra + FujiNet (Wine)</li>
+  <li>Atari ROMs</li>
+  <li>Building bbs.xex</li>
+  <li>Running the BBS</li>
+  <li>Customizing</li>
+  <li>Troubleshooting</li>
+</ol>
+
+<h2>1. Overview and folder layout</h2>
+<p>The BBS is a C program compiled with <b>cc65</b> against <b>fujinet-lib</b> into an Atari executable
+(<code>bbs.xex</code>). It runs on a real Atari with a FujiNet, or on a PC in an emulator. In the emulator
+setup, the emulated Atari talks to <b>FujiNet-PC</b> (the FujiNet firmware built as a Linux program) over
+<b>NetSIO</b>, a network version of the Atari SIO bus. FujiNet-PC provides the network (<code>N:</code> device:
+the TCP listener callers connect to) and the SD card (a folder on the PC).</p>
+<pre>build:    make → cl65 -t atari → build/bbs.xex
+
+emulator: atari800 -netsio ── UDP 9997 ───────────────────────────┐
+          Altirra + netsio.atdevice ── TCP 9996 → netsiohub ──────┤
+                                                                  ▼
+                                                             FujiNet-PC
+                             SD folder sd/bbs · N: listener 6502 · web UI :8000
+                                                                  ▲
+callers:  telnet host 6502 (PC/Mac/phone, Atari, C64, CPC) ───────┘</pre>
+<p>Two sibling folders. All tools are built into <code>opt/</code> inside the project; nothing is installed
+system-wide (except the distribution packages in section 2).</p>
+<table>
+<tr><th>Folder</th><th>Contents</th></tr>
+<tr><td><code>atari-dev/</code></td><td>Toolchain and emulators: <code>src/</code> (git clones), <code>opt/cc65</code>,
+  <code>opt/fujinet-lib</code>, <code>opt/atari800</code>, <code>opt/fujinet-pc</code>, <code>opt/altirra</code>;
+  Makefile with <code>make run / boot / altirra</code> for a sample program</td></tr>
+<tr><td><code>blues-bbs/</code></td><td>The BBS: <code>src/</code> (C), <code>lang/</code> (texts), <code>sd/bbs/</code> (BBS data =
+  SD card), <code>opt/fujinet-pc/</code> (its own FujiNet-PC instance), <code>tools/</code>, <code>docs/</code></td></tr>
+</table>
+<p>The BBS Makefile finds the toolchain via <code>DEV ?= ../atari-dev</code>; with another location:
+<code>make DEV=/path/to/atari-dev</code>.</p>
+
+<h2>2. Prerequisites</h2>
+<pre>sudo apt install build-essential git make gcc python3 python3-venv cmake \
+                 autoconf automake libsdl2-dev unzip telnet
+sudo apt install wine          # only for Altirra
+sudo apt install gh            # optional: download fujinet-lib releases</pre>
+<div class="note"><b>Do not use the distribution's <code>atari800</code> package</b> (Ubuntu ships 5.2.0): it has no
+NetSIO and cannot talk to FujiNet-PC. Build 7.2.1 from source (section 5).</div>
+<pre>mkdir -p atari-dev/src atari-dev/opt && cd atari-dev/src
+git clone https://github.com/cc65/cc65.git
+git clone https://github.com/atari800/atari800.git
+git clone https://github.com/FujiNetWIFI/fujinet-firmware.git
+git clone https://github.com/FujiNetWIFI/fujinet-emulator-bridge.git   # netsiohub + Altirra device</pre>
+
+<h2>3. cc65 (C compiler)</h2>
+<pre>cd atari-dev/src/cc65
+make -j$(nproc)
+make install PREFIX=$PWD/../../opt/cc65
+../../opt/cc65/bin/cl65 --version          # cl65 V2.19 - Git ...</pre>
+<p>The Makefiles set <code>CC65_HOME=opt/cc65/share/cc65</code> themselves, so no shell setup is needed.</p>
+<div class="note"><b>Target <code>-t atari</code>, not <code>-t atarixl</code>.</b> fujinet-lib calls the OS SIO vector
+(<code>$E459</code>) directly; with the atarixl runtime the OS ROM is switched out and the call hangs. <code>-t atari</code>
+programs run on every XL/XE; memory is <code>$2000–$BC20</code> (~39 KB), atarixl would only give ~4 KB more.</div>
+
+<h2>4. fujinet-lib</h2>
+<p>Use the prebuilt Atari release (5.1.0), not a source build:</p>
+<pre>mkdir -p atari-dev/opt/fujinet-lib && cd atari-dev/opt/fujinet-lib
+gh release download -R FujiNetWIFI/fujinet-lib -p "*atari*"     # or download from the GitHub releases page
+unzip fujinet-lib-atari-*.zip
+ls fujinet-atari-*.lib fujinet-network.h</pre>
+<p>The Makefiles pick up <code>fujinet-atari-*.lib</code> by wildcard and add the folder as include path
+(<code>-I opt/fujinet-lib</code>). Note: <code>network_init()</code> is a no-op in 5.x and does not detect a FujiNet.</p>
+
+<h2>5. atari800 with NetSIO</h2>
+<pre>cd atari-dev/src/atari800
+./autogen.sh
+./configure --prefix=$PWD/../../opt/atari800 --target=default \
+            --with-video=sdl2 --with-sound=sdl2
+make -j$(nproc) && make install
+../../opt/atari800/bin/atari800 -help | grep -i netsio      # must list -netsio</pre>
+<p>Both projects pass their own config with <code>-config atari800.cfg</code>, so <code>~/.atari800.cfg</code> is never used.
+The BBS starts it as:</p>
+<pre>atari800 -config atari800.cfg -no-kbdjoy0 -no-kbdjoy1 -xl -netsio -run build/bbs.xex</pre>
+<ul>
+<li><code>-netsio</code>: SIO over UDP to FujiNet-PC (default port 9997). Start FujiNet-PC <b>before</b> the emulator.</li>
+<li><code>-no-kbdjoy0 -no-kbdjoy1</code>: otherwise W/A/S/D, the keypad and Ctrl act as joysticks and the sysop keys get lost.</li>
+<li>F8 opens atari800's simple monitor; for symbols and source-level debugging use Altirra.</li>
+</ul>
+
+<h2>6. FujiNet-PC</h2>
+<pre>cd atari-dev/src/fujinet-firmware
+./build.sh -y -p ATARI                    # creates a Python venv, builds with cmake
+cp -r build/dist ../../opt/fujinet-pc</pre>
+<p>The BBS uses its <b>own copy</b>, so the BBS data never mixes with other projects:</p>
+<pre>cp -r atari-dev/opt/fujinet-pc blues-bbs/opt/fujinet-pc
+ln -sfn ../../sd blues-bbs/opt/fujinet-pc/SD      # make run does this too</pre>
+<ul>
+<li><b>SD card</b> = the folder <code>SD</code> next to the <code>fujinet</code> binary (here a link to <code>blues-bbs/sd</code>).
+  The BBS reads and writes <code>N2:SD:///bbs/...</code> (three slashes).</li>
+<li><b>Config</b>: <code>fnconfig.ini</code>. NetSIO (<code>[BOIP] enabled=1 host=localhost</code>) is on by default. Set the
+  <code>timezone</code> - the BBS takes date and time from FujiNet (APETIME).</li>
+<li><b>Web UI</b>: <code>http://localhost:8000</code> - mount images, settings. It has no login:
+  <b>never forward port 8000</b> to the internet.</li>
+<li><b>Restarts</b>: the BBS starts FujiNet-PC through <code>tools/run-fujinet</code>, which restarts it after every exit
+  except a deliberate stop - FujiNet-PC crashes (exit 134) when the Atari reboots while the BBS listener is open.</li>
+</ul>
+<h3>Boot from FujiNet D1 (optional, like the real machine)</h3>
+<p>For <code>make boot</code> in atari-dev: <code>configenabled=0</code> and a D1 mount in <code>fnconfig.ini</code>, then
+atari800 is started without <code>-run</code> and boots the XEX from FujiNet:</p>
+<pre>[Mount1]
+hostslot=1
+path=/app.xex
+mode=r</pre>
+
+<h2>7. Altirra + FujiNet (Wine)</h2>
+<p>Altirra is the more exact emulator with a full debugger (symbols, source-level breakpoints). It runs under Wine
+and reaches FujiNet-PC through a custom device plus the <b>netsiohub</b>:</p>
+<pre>Altirra + netsio.atdevice ── TCP 9996 ── netsiohub (Python) ── UDP 9997 ── FujiNet-PC</pre>
+<ol>
+<li>Download <code>Altirra-4.40.zip</code> from <code>https://www.virtualdub.org/altirra.html</code> and unpack it to
+  <code>atari-dev/opt/altirra/</code> (portable, no installer).</li>
+<li>Copy the NetSIO device:<br>
+<code>cp src/fujinet-emulator-bridge/altirra-custom-device/netsio.atdevice opt/altirra/</code></li>
+<li>Start everything from <code>atari-dev/</code>:
+<pre>make altirra        # starts netsiohub (TCP 9996) + FujiNet-PC, then Altirra with build/app.xex</pre>
+  which runs <code>tools/altirra.sh</code>: Altirra64.exe <code>/portable /hardware:800xl
+  /setdevice "custom,path=netsio.atdevice" /debug /run app.xex</code>. Settings stay in
+  <code>opt/altirra/Altirra.ini</code>. The command goes through a <code>.bat</code> file because Wine re-quotes arguments
+  and Altirra would reject <code>/debugcmd:"..."</code>.</li>
+<li>The netsiohub alone: <code>cd src/fujinet-emulator-bridge/fujinet-bridge &amp;&amp; python3 -m netsiohub</code>
+  (log in <code>build/hub.log</code>).</li>
+</ol>
+<p>Symbols from <code>.lbl</code>/<code>.dbg</code> load automatically; breakpoints like <code>bp `main.c:24`</code> work.
+<code>make altirra-test</code> runs a program for 45 s and prints its text screen (debugger script dumps screen RAM).</p>
+<h3>Running the BBS in Altirra</h3>
+<pre>cd blues-bbs && make                               # build/bbs.xex (+ .lbl/.dbg)
+cd ../atari-dev && make hub                        # netsiohub on TCP 9996
+(cd ../blues-bbs && make fujinet)                  # FujiNet-PC with the BBS SD folder
+tools/altirra.sh ../blues-bbs/build/bbs.xex        # Altirra, debugger open</pre>
+<div class="warn"><b>Not tested with the BBS so far</b> (only the atari-dev sample). Run only <b>one</b> emulator at a time on
+one FujiNet-PC: netsiohub and atari800 both use UDP 9997 (<code>make run</code> stops the hub automatically).
+Never do this on the machine where the live BBS is running - use a separate box or stop the live BBS first.</div>
+
+<h2>8. Atari ROMs</h2>
+<p>Atari's OS and BASIC ROMs are copyrighted and <b>not</b> in the repositories. Two options:</p>
+<ul>
+<li><b>Built-in</b>: delete the <code>ROM_OS_BB01R2=</code> line in <code>atari800.cfg</code> - atari800 then uses AltirraOS
+  (free replacement). All tests of the atari-dev sample ran that way.</li>
+<li><b>Original XL OS</b>: put your own dump into <code>rom/ATARIXL.ROM</code> and set
+  <code>ROM_OS_BB01R2=/full/path/to/rom/ATARIXL.ROM</code> in <code>atari800.cfg</code> (the live BBS uses this).
+  <code>rom/</code> is git-ignored - never commit it.</li>
+</ul>
+<p>BASIC is disabled (<code>DISABLE_BASIC=1</code>), the machine is an XL/XE with 64 KB, PAL.</p>
+
+<h2>9. Building bbs.xex</h2>
+<pre>cd blues-bbs
+echo 'BBS_LANG = de' &gt; config.mk     # once: German texts (default en); config.mk is not in git
+make                                 # → build/bbs.xex</pre>
+<h3>What <code>make</code> does</h3>
+<ol>
+<li><code>tools/mklang.py</code> turns <code>lang/&lt;BBS_LANG&gt;.txt</code> into <code>build/lang/&lt;lang&gt;/lang.h</code>
+  (<code>L_KEY</code> macros). It checks placeholders (<code>%u %s</code> ...) against <code>lang/en.txt</code>,
+  plain ASCII and line length; missing keys fall back to English.</li>
+<li><code>cl65</code> compiles and links all sources plus fujinet-lib in one step:
+<pre>cl65 -t atari -O -I opt/fujinet-lib -g -I build/lang/de \
+     -m build/bbs.map -Ln build/bbs.lbl -Wl --dbgfile,build/bbs.dbg \
+     -o build/bbs.xex src/bbs.c src/net.c src/term.c src/sound.c src/store.c src/user.c \
+        src/menu.c src/msg.c src/board.c src/pm.c src/sysop.c src/kbd.s fujinet-atari-5.1.0.lib</pre></li>
+<li>Switching the language (<code>make BBS_LANG=en</code>) rebuilds the XEX automatically (<code>build/lang.cur</code>).</li>
+</ol>
+<table>
+<tr><th>Output</th><th>Use</th></tr>
+<tr><td><code>build/bbs.xex</code></td><td>the program - runs in atari800/Altirra, or copy it to the FujiNet SD card</td></tr>
+<tr><td><code>build/bbs.map</code></td><td>memory map: segment sizes (watch the ~39 KB limit)</td></tr>
+<tr><td><code>build/bbs.lbl</code>, <code>bbs.dbg</code></td><td>symbols and source lines for the Altirra debugger</td></tr>
+</table>
+<h3>Make targets</h3>
+<table>
+<tr><th>Command</th><th>Does</th></tr>
+<tr><td><code>make</code></td><td>build <code>build/bbs.xex</code></td></tr>
+<tr><td><code>make run</code></td><td>stop the live instance, link <code>SD</code> → <code>sd/</code>, start FujiNet-PC (via run-fujinet) and atari800 with the BBS</td></tr>
+<tr><td><code>make stop</code></td><td>stop FujiNet-PC and atari800 of the live instance</td></tr>
+<tr><td><code>make reset PW=secret</code></td><td><b>deletes all BBS data</b> (users, stats, boards, mailboxes) and sets the sysop password for the next start</td></tr>
+<tr><td><code>make sd</code></td><td>copy the XEX to <code>sd/bbs.xex</code></td></tr>
+<tr><td><code>make test</code></td><td>test builds in <code>build/test/</code>: port 6503, short timeouts, fast clock wrap, always German</td></tr>
+<tr><td><code>tools/test_all.sh</code></td><td>all automated tests on the separate test instance (fresh data)</td></tr>
+<tr><td><code>make clean</code></td><td>remove <code>build/</code></td></tr>
+</table>
+<h3>Ports and instances</h3>
+<table>
+<tr><th></th><th>Live (<code>make run</code>)</th><th>Test (<code>tools/emu.sh</code>)</th></tr>
+<tr><td>BBS telnet port</td><td>6502 (<code>bbs.cfg</code>)</td><td>6503</td></tr>
+<tr><td>NetSIO (UDP)</td><td>9997</td><td>9998</td></tr>
+<tr><td>FujiNet-PC web UI</td><td>8000</td><td>127.0.0.1:8001</td></tr>
+<tr><td>SD folder</td><td><code>sd/</code> (real data)</td><td><code>build/testsd/</code></td></tr>
+<tr><td>Log</td><td><code>build/fujinet.log</code></td><td><code>build/fujinet-test.log</code></td></tr>
+</table>
+<p>Stop single instances with <code>tools/inst.sh live|test fujinet|atari800|stop</code> - never <code>pkill fujinet</code>,
+that would hit both.</p>
+
+<h2>10. Running the BBS</h2>
+<h3>a) Emulator (Linux PC) - how the BBS runs online</h3>
+<pre>make reset PW=yourpassword     # first time only: fresh data + sysop password
+make run                       # atari800 window = sysop console
+telnet localhost 6502          # second terminal: call your BBS, log in as SYSOP</pre>
+<ul>
+<li><b>Online</b>: forward TCP 6502 on the router to the PC (fixed LAN address via DHCP reservation), open the
+  firewall (<code>sudo ufw allow 6502/tcp</code>), test from outside (phone on mobile data). Never forward 8000.</li>
+<li><code>make run</code> always restarts FujiNet-PC and atari800 together: a restarted atari800 never links to a
+  FujiNet-PC that is already running.</li>
+<li><b>Backup</b> hourly from cron: <code>0 * * * * /path/to/blues-bbs/tools/backup.sh</code> (snapshots of
+  <code>sd/bbs</code> in <code>backup/</code>, keeps 30; restore: <code>make stop</code>, <code>tar -xzf backup/bbs-&lt;date&gt;.tar.gz -C sd</code>).</li>
+<li><b>Log rotation</b> hourly: <code>5 * * * * /path/to/blues-bbs/tools/logrotate.sh</code> (FujiNet-PC logs ~15 MB/h).</li>
+</ul>
+<h3>b) Real hardware (not tested yet)</h3>
+<ol>
+<li>Atari 800XL/130XE (64 KB) + FujiNet with SD card, connected to the WLAN.</li>
+<li>Copy <code>build/bbs.xex</code> to the card, and <code>sd/bbs/</code> as <code>/bbs/</code> (menus, texts, <code>bbs.cfg</code>).
+  Put the initial sysop password into <code>/bbs/sysop.txt</code> (one line) - the BBS deletes it after the first start.</li>
+<li>Boot the Atari with FujiNet, select the SD host, boot <code>bbs.xex</code>. FujiNet boots XEX files directly (no ATR needed).</li>
+<li>Forward TCP 6502 to the FujiNet's IP address. Back up by copying <code>/bbs/</code> from the card now and then.</li>
+</ol>
+<h3>First start</h3>
+<p>The BBS waits for the SD card (retries every 5 s), loads <code>menus.txt</code>, reads <code>bbs.cfg</code>, opens
+<code>users.dat</code> (creates user <code>SYSOP</code> with the password from <code>sysop.txt</code> if it is new) and opens the
+listener (retries every 10 s). Then it shows "waiting for call".</p>
+<h3>Sysop keys on the Atari</h3>
+<table>
+<tr><th>Key</th><th>Does</th></tr>
+<tr><td><b>A</b></td><td>sysop present / away - callers can page you only when present (paging rings 30 s, then a PM to the sysop)</td></tr>
+<tr><td><b>C</b></td><td>chat with the caller (when paged or any time during a call); ESC ends it</td></tr>
+<tr><td><b>K</b></td><td>kick the caller</td></tr>
+<tr><td><b>L</b></td><td>local login on the Atari keyboard and screen (while no one is calling)</td></tr>
+<tr><td><b>Q</b></td><td>shut down cleanly (after the current call)</td></tr>
+</table>
+
+<h2>11. Customizing</h2>
+<p><code>bbs/</code> below means <code>sd/bbs/</code> in the emulator and <code>/bbs/</code> on the FujiNet card. Files are read at
+boot - <b>restart the BBS after a change</b>. All texts plain ASCII (umlauts as ae/oe/ue/ss), max. 40 columns for
+Atari and C64 callers.</p>
+<h3>Without rebuilding (SD card files)</h3>
+<table>
+<tr><th>What</th><th>File</th><th>Notes</th></tr>
+<tr><td>Port</td><td><code>bbs/bbs.cfg</code></td><td><code>port = 6502</code>; <code>key = value</code>, <code>#</code> comments; 8000 is refused; router + firewall must match</td></tr>
+<tr><td>Welcome banner</td><td><code>bbs/texts/banner.txt</code></td><td>shown after the terminal choice, before login</td></tr>
+<tr><td>Help/info texts</td><td><code>bbs/texts/*.txt</code></td><td>linked from menus with type <code>T</code></td></tr>
+<tr><td>Menus and boards</td><td><code>bbs/menus.txt</code></td><td>see below; max. 48 items, 16 boards</td></tr>
+<tr><td>First sysop password</td><td><code>bbs/sysop.txt</code></td><td>used once when <code>users.dat</code> is created, then deleted</td></tr>
+</table>
+<h3><code>menus.txt</code> format</h3>
+<pre># &lt;menu&gt; &lt;key&gt; &lt;type&gt; &lt;arg&gt; &lt;level&gt; &lt;label&gt;
+0 1 M 1  0 Hilfe &amp; Info's          # main menu, key 1 → submenu 1
+0 2 B 1  0 Termine &amp; Treffen        # board 1
+0 7 F new 0 Neue Msg lesen          # function
+1 1 T kurz.txt 0 Kurz-Anleitung     # text file bbs/texts/kurz.txt
+8 9 F approve 5 Freischalten (Sysop)  # level 5 = sysop only</pre>
+<table>
+<tr><th>Field</th><th>Meaning</th></tr>
+<tr><td>menu</td><td>menu number; 0 = main menu. A submenu's title is the label of the item leading to it.</td></tr>
+<tr><td>key</td><td>one character the caller types (digits, like 1987); chains like <code>*42</code> work, <code>*</code> = main menu, RETURN = back, 0 = logoff</td></tr>
+<tr><td>type</td><td><code>M</code> submenu (arg = menu no.), <code>B</code> board (arg = 1-16), <code>T</code> text file, <code>F</code> function</td></tr>
+<tr><td>functions</td><td><code>status users passwd approve new pmwrite pmread sysop</code></td></tr>
+<tr><td>level</td><td>minimum level to see/use: 0 guest, 1 new (read only, waits for approval), 2 member, 5 sysop</td></tr>
+<tr><td>label</td><td>max. 22 characters</td></tr>
+</table>
+<h3>Program texts and languages (rebuild)</h3>
+<ul>
+<li><code>lang/en.txt</code> is the master list (every key), <code>lang/de.txt</code> the German version:
+  <code>KEY = "text"</code>, <code>\n</code> = new line, same placeholders in the same order.</li>
+<li>New language: copy <code>en.txt</code> to <code>lang/xx.txt</code>, translate, <code>make BBS_LANG=xx</code> (or set it in <code>config.mk</code>).</li>
+<li>Source code contains no caller or console texts - always add a key to both files and use <code>L_KEY</code>.</li>
+</ul>
+<h3>Compile-time settings (rebuild)</h3>
+<table>
+<tr><th>Constant</th><th>Default</th><th>Where</th><th>Meaning</th></tr>
+<tr><td><code>IDLE_SECONDS</code></td><td>300</td><td><code>src/term.h</code></td><td>logged in: hang up after 5 min without a key</td></tr>
+<tr><td><code>LOGIN_IDLE</code></td><td>60</td><td><code>src/term.h</code></td><td>before login: 1 min without a key</td></tr>
+<tr><td><code>LOGIN_TOTAL</code></td><td>300</td><td><code>src/term.h</code></td><td>before login: 5 min per call at most (against bots)</td></tr>
+<tr><td><code>PAGE_SECONDS</code></td><td>30</td><td><code>src/sysop.c</code></td><td>how long a page rings the sysop</td></tr>
+<tr><td><code>BBS_PORT</code></td><td>6502</td><td><code>src/net.c</code></td><td>default port if <code>bbs.cfg</code> has none (<code>-DBBS_PORT=n</code>)</td></tr>
+<tr><td><code>MAX_BOARDS</code></td><td>16</td><td><code>src/board.h</code></td><td>number of boards</td></tr>
+<tr><td><code>NAME_LEN</code></td><td>15</td><td><code>src/user.h</code></td><td>max. user name length (changes the <code>users.dat</code> format!)</td></tr>
+</table>
+<h3>Online (as sysop)</h3>
+<p>Menu 8 → 4 changes your password, menu 8 → 9 approves new users (level 1 → 2) so they can write.</p>
+
+<h2>12. Troubleshooting</h2>
+<table>
+<tr><th>Symptom</th><th>Cause / fix</th></tr>
+<tr><td>atari800 hangs on boot, or "No FujiNet found"</td><td>FujiNet-PC not running or NetSIO link down: start FujiNet-PC first; <code>make run</code> restarts both</td></tr>
+<tr><td><code>atari800: unknown option -netsio</code></td><td>the distribution's atari800 is used - use <code>opt/atari800/bin/atari800</code></td></tr>
+<tr><td>Program hangs at the first FujiNet call</td><td>built with <code>-t atarixl</code> - use <code>-t atari</code></td></tr>
+<tr><td>Sysop keys W/A/S/D/Ctrl don't work</td><td>missing <code>-no-kbdjoy0 -no-kbdjoy1</code></td></tr>
+<tr><td>"waiting for SD" forever</td><td><code>SD</code> link missing in <code>opt/fujinet-pc/</code> or no <code>bbs/menus.txt</code> on it</td></tr>
+<tr><td>"retry listen" repeats</td><td>port in use or FujiNet-PC restarting - check <code>build/fujinet.log</code></td></tr>
+<tr><td>Altirra: "open failed"</td><td>netsiohub not running: <code>ss -ltn | grep 9996</code>, log <code>build/hub.log</code></td></tr>
+<tr><td>Altirra: <i>Cannot open file "/debugcmd:..."</i></td><td>start it via <code>tools/altirra.sh</code> (.bat), not directly through Wine</td></tr>
+<tr><td>Disk filling up</td><td>FujiNet-PC log: install the <code>tools/logrotate.sh</code> cron job</td></tr>
+<tr><td>Wrong date/time</td><td><code>timezone</code> in <code>fnconfig.ini</code>; time comes from FujiNet (SNTP)</td></tr>
+</table>
+<p class="meta">Atari clock note: the Atari's tick counter (RTCLOK) wraps every ~3.9 days; all time math in the BBS uses
+<code>ELAPSED()</code> (<code>src/ticks.h</code>), so the wrap is harmless. Dates come from FujiNet, not from RTCLOK.</p>
+
+</body>
+</html>

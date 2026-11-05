@@ -3,6 +3,9 @@
 How the BBS is built and why: phases, FujiNet findings, data formats, the 24/7 hardening, tests and make
 targets. Setup and customizing: [README](../README.md).
 
+**Setup and build guide:** [docs/guide/setup-guide.pdf](guide/setup-guide.pdf) - toolchain, emulators,
+build, customizing. Source `docs/guide/setup-guide.html`, rebuild with `docs/guide/mkpdf.sh` (headless Chrome).
+
 **Program flowcharts (PAP, DIN 66001):** [docs/pap/pap.pdf](pap/pap.pdf) - main loop, call, login, menu
 navigation, key input + sysop console. Rebuild after code changes: `cd docs/pap && python3 gen.py` (needs Graphviz
 `dot`, `pdfunite`, `gs`).

@@ -72,7 +72,8 @@ online today.
 
 1. **Toolchain:** cc65, fujinet-lib (Atari 5.1.0), atari800 (7.2.1, with NetSIO) and FujiNet-PC. The Makefile
    expects them in a sibling folder `../atari-dev` (cc65, fujinet-lib and atari800 under `../atari-dev/opt/`) and
-   FujiNet-PC in `opt/fujinet-pc/` – that companion setup isn't published yet (other place: `make DEV=/path`).
+   FujiNet-PC in `opt/fujinet-pc/` (other place: `make DEV=/path`). How to build all of them step by step:
+   [`docs/guide/setup-guide.pdf`](docs/guide/setup-guide.pdf).
 2. **Atari OS ROM:** `atari800.cfg` uses `rom/ATARIXL.ROM`. Atari's ROMs are copyrighted and not in this repo –
    put your own dump there, or delete the `ROM_OS_BB01R2=` line in `atari800.cfg` to use the built-in AltirraOS.
 3. **Language:** `echo 'BBS_LANG = de' > config.mk` for German (default: English).
@@ -141,6 +142,8 @@ agree on special characters.
 
 - [`docs/TECHNICAL.md`](docs/TECHNICAL.md) – how it works: phases, FujiNet findings, data formats, the
   24/7 hardening, tests and make targets
+- [`docs/guide/setup-guide.pdf`](docs/guide/setup-guide.pdf) – setup and build guide: cc65, fujinet-lib,
+  atari800 + FujiNet-PC, Altirra + FujiNet, building `bbs.xex`, customizing
 - [`docs/pap/pap.pdf`](docs/pap/pap.pdf) – program flowcharts (PAP, DIN 66001): main loop, call, login,
   menu navigation, key input + sysop console
 - [`CLAUDE.md`](CLAUDE.md) – notes for working on the code
