@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Berlin Blues BBS - How to Call</title>
+<!-- Source of docs/guide/calling-guide.pdf. Rebuild: docs/guide/mkpdf.sh calling-guide (headless Chrome). -->
+<style>
+  @page { size: A4; margin: 16mm 16mm 16mm 16mm; }
+  body { font-family: "DejaVu Sans", Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.42; color: #111; }
+  h1 { font-size: 22pt; margin: 0 0 4pt 0; }
+  h2 { font-size: 14pt; margin: 16pt 0 6pt 0; border-bottom: 1.5pt solid #222; padding-bottom: 2pt; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 10pt 0 4pt 0; page-break-after: avoid; }
+  p, li { margin: 3pt 0; }
+  ul, ol { margin: 3pt 0 3pt 0; padding-left: 18pt; }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: #f1f1f1; padding: 0 2pt; border-radius: 2pt; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 8.6pt; line-height: 1.32; background: #f4f4f4;
+        border-left: 3pt solid #888; padding: 6pt 8pt; margin: 5pt 0 7pt 0; white-space: pre-wrap; page-break-inside: avoid; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 8pt 0; page-break-inside: avoid; font-size: 9.2pt; }
+  th, td { border: 0.6pt solid #999; padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #e6e6e6; }
+  .sub { color: #444; font-size: 11pt; margin-bottom: 10pt; }
+  .note { border: 0.8pt solid #999; background: #fafafa; padding: 5pt 8pt; margin: 6pt 0; page-break-inside: avoid; }
+  .warn { border: 1pt solid #b00; background: #fff4f4; padding: 5pt 8pt; margin: 6pt 0; page-break-inside: avoid; }
+  .meta { font-size: 8.5pt; color: #555; }
+  .brk { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<h1>Berlin Blues BBS</h1>
+<div class="sub">How to call the box with telnet: macOS, Windows (PuTTY) and Linux</div>
+<p class="meta">The Berlin Blues is a single-line mailbox running on an Atari XL with FujiNet. You call it over
+the internet with a <b>telnet</b> client on <b>port 6502</b>. Only one caller can be online at a time; if the
+line is busy, try again a bit later. As of 2026-11-14.</p>
+
+<div class="note"><b>The address.</b> In this guide <code>ADDRESS</code> stands for the box's internet
+address, which you get from the sysop. Replace it with the real address everywhere. The port is always
+<code>6502</code>.</div>
+
+<div class="warn"><b>Telnet is not secure.</b> Telnet sends everything as plain, unencrypted text, including
+your user name and password. Anyone along the way (a public Wi-Fi, a network operator) could read it.
+<ul>
+  <li>Use a password for the Berlin Blues that you use <b>nowhere else</b>.</li>
+  <li>Don't write anything in the box that you wouldn't put on a postcard.</li>
+</ul>
+<b>Why telnet anyway?</b> The box itself is an 8-bit computer: an Atari XL with a 6502 CPU at 1.79 MHz and
+64 KB of RAM. Encrypted connections (SSH, TLS) need far more computing power and memory than that machine
+has. Many callers also dial in from 8-bit computers (Atari, C64, Schneider/Amstrad CPC) with
+WiFi modems, and those only speak plain telnet too. Telnet keeps the box open for both: the
+8-bit host and the 8-bit callers, just like a mailbox in 1987.</div>
+
+<h2>1. macOS</h2>
+<p>Apple removed the <code>telnet</code> command in macOS 10.13 High Sierra, so current macOS versions
+don't have it. The easiest way to get it back is the package manager <b>Homebrew</b>.</p>
+
+<h3>1.1 Open the Terminal</h3>
+<p><i>Finder &rarr; Applications &rarr; Utilities &rarr; Terminal</i>, or press <b>&#8984; Space</b>, type
+<code>Terminal</code> and press Return. Check first whether telnet is already there:</p>
+<pre>telnet</pre>
+<p>If you see <code>command not found: telnet</code>, continue with 1.2. If you see a <code>telnet&gt;</code>
+prompt, type <code>quit</code> and go to 1.4.</p>
+
+<h3>1.2 Install Homebrew (skip if you already have it)</h3>
+<p>Copy this line from <b>brew.sh</b> into the Terminal and press Return:</p>
+<pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
+<ul>
+  <li>It asks for your Mac password (the one you log in with). Nothing is shown while you type; that's normal.</li>
+  <li>It may install Apple's <i>Command Line Tools</i> first. That takes a few minutes.</li>
+  <li>At the end it prints <b>Next steps</b> with two or three commands. On Macs with Apple chips (M1 and newer)
+      you must run them, otherwise the <code>brew</code> command isn't found. Then close the Terminal window and
+      open a new one.</li>
+</ul>
+
+<h3>1.3 Install telnet</h3>
+<pre>brew install telnet</pre>
+
+<h3>1.4 Call the box</h3>
+<pre>telnet ADDRESS 6502</pre>
+<p>Continue with <b>section 4</b> (first call).</p>
+
+<h2>2. Windows with PuTTY</h2>
+<p><b>PuTTY</b> is a free terminal program for Windows that speaks telnet (and SSH).</p>
+
+<h3>2.1 Install PuTTY</h3>
+<ul>
+  <li>Download it only from the official page: <b>https://www.chiark.greenend.org.uk/~sgtatham/putty/</b>
+      &rarr; <i>Download PuTTY</i> &rarr; the 64-bit x86 <code>.msi</code> installer (<i>64-bit Arm</i> for
+      Arm laptops), then run it.</li>
+  <li>Or in a terminal (PowerShell): <code>winget install PuTTY.PuTTY</code></li>
+</ul>
+
+<h3>2.2 Set up the connection</h3>
+<ol>
+  <li>Start <b>PuTTY</b> from the Start menu. The window <i>PuTTY Configuration</i> opens on the
+      <i>Session</i> page.</li>
+  <li><b>Host Name (or IP address):</b> <code>ADDRESS</code></li>
+  <li><b>Port:</b> <code>6502</code></li>
+  <li><b>Connection type:</b> <b>Telnet</b>. In newer PuTTY versions, click <i>Other</i> and pick
+      <i>Telnet</i> from the list next to it. Don't use <i>Raw</i>: the box then can't switch off PuTTY's local
+      echo, and you would see every key twice.</li>
+  <li>To keep the settings: type <code>Berlin Blues</code> under <i>Saved Sessions</i> and click <b>Save</b>.
+      Next time, double-click that entry.</li>
+  <li>Click <b>Open</b>. A black window opens; continue with <b>section 4</b>.</li>
+</ol>
+<p class="meta">The defaults fit: 80 &times; 24 characters, Backspace works. The window closes by itself after you
+log off.</p>
+
+<div class="note"><b>Without PuTTY:</b> Windows 10 and 11 still have their own telnet client, it's just
+switched off. <i>Control Panel &rarr; Programs &rarr; Turn Windows features on or off &rarr; Telnet Client</i>,
+or in an administrator command prompt: <code>dism /online /Enable-Feature /FeatureName:TelnetClient</code>.
+Then: <code>telnet ADDRESS 6502</code></div>
+
+<h2>3. Linux</h2>
+<p>Most distributions don't install telnet by default, but every one has it as a package. Open a terminal
+and install it:</p>
+<table>
+  <tr><th>Distribution</th><th>Command</th></tr>
+  <tr><td>Debian, Ubuntu, Linux Mint, Raspberry Pi OS</td><td><code>sudo apt install telnet</code></td></tr>
+  <tr><td>Fedora, RHEL, Rocky, AlmaLinux</td><td><code>sudo dnf install telnet</code></td></tr>
+  <tr><td>openSUSE</td><td><code>sudo zypper install telnet</code></td></tr>
+  <tr><td>Arch Linux, Manjaro</td><td><code>sudo pacman -S inetutils</code></td></tr>
+</table>
+<p>Then call the box:</p>
+<pre>telnet ADDRESS 6502</pre>
+
+<h2>4. First call</h2>
+<p>The box speaks German. What you'll see, step by step:</p>
+<table>
+  <tr><th>The box shows</th><th>Meaning</th><th>You type</th></tr>
+  <tr><td><code>BERLIN BLUES BOX - BITTE &lt;RETURN&gt; DRUECKEN</code></td><td>press Return</td><td>Return</td></tr>
+  <tr><td><code>1=PC/MAC 2=SCHNEIDER CPC 3=C64 ?</code></td><td>which computer are you calling from?</td><td><code>1</code> (PC, Mac or Linux)</td></tr>
+  <tr><td><code>Gaeste bitte &lt;RETURN&gt; druecken! Username ==&gt;</code></td><td>your user name; Return alone = guest</td><td>a name (3-15 letters/digits)</td></tr>
+  <tr><td><code>Dich kenne ich noch nicht. Neu eintragen (J/N)?</code></td><td>new name: register?</td><td><code>j</code> (yes)</td></tr>
+  <tr><td><code>Neues Passwort (4-16 Zeichen) ==&gt;</code> / <code>Nochmal ==&gt;</code></td><td>choose a password, then repeat it</td><td>a password used nowhere else</td></tr>
+</table>
+<ul>
+  <li>As a new user you can <b>read</b> right away. You can <b>write</b> once the sysop has approved you.</li>
+  <li>In every menu: <code>*</code> = main menu, <code>0</code> = <b>log off</b>. <code>--Mehr--</code> means
+      "more": Return shows the next page, <code>q</code> stops.</li>
+  <li>After 5 minutes without a key press the box hangs up, so the line is free for the next caller.</li>
+  <li>Please always log off with <code>0</code>. If the connection hangs, just close the window.</li>
+</ul>
+
+<p class="meta" style="margin-top:14pt">Berlin Blues BBS &middot; source code and more documentation:
+https://github.com/joergr72idb/atari-fujinet-berlin-blues-bbs</p>
+
+</body>
+</html>
