@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Berlin Blues BBS - So rufst du an</title>
+<!-- Quelle von docs/guide/calling-guide-de.pdf. Neu bauen: docs/guide/mkpdf.sh calling-guide-de (headless Chrome).
+     Englische Fassung: calling-guide.html - Änderungen in beiden machen. -->
+<style>
+  @page { size: A4; margin: 16mm 16mm 16mm 16mm; }
+  body { font-family: "DejaVu Sans", Helvetica, Arial, sans-serif; font-size: 10pt; line-height: 1.42; color: #111; }
+  h1 { font-size: 22pt; margin: 0 0 4pt 0; }
+  h2 { font-size: 14pt; margin: 16pt 0 6pt 0; border-bottom: 1.5pt solid #222; padding-bottom: 2pt; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 10pt 0 4pt 0; page-break-after: avoid; }
+  p, li { margin: 3pt 0; }
+  ul, ol { margin: 3pt 0 3pt 0; padding-left: 18pt; }
+  code { font-family: "DejaVu Sans Mono", monospace; font-size: 8.8pt; background: #f1f1f1; padding: 0 2pt; border-radius: 2pt; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 8.6pt; line-height: 1.32; background: #f4f4f4;
+        border-left: 3pt solid #888; padding: 6pt 8pt; margin: 5pt 0 7pt 0; white-space: pre-wrap; page-break-inside: avoid; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 5pt 0 8pt 0; page-break-inside: avoid; font-size: 9.2pt; }
+  th, td { border: 0.6pt solid #999; padding: 3pt 5pt; text-align: left; vertical-align: top; }
+  th { background: #e6e6e6; }
+  .sub { color: #444; font-size: 11pt; margin-bottom: 10pt; }
+  .note { border: 0.8pt solid #999; background: #fafafa; padding: 5pt 8pt; margin: 6pt 0; page-break-inside: avoid; }
+  .warn { border: 1pt solid #b00; background: #fff4f4; padding: 5pt 8pt; margin: 6pt 0; page-break-inside: avoid; }
+  .meta { font-size: 8.5pt; color: #555; }
+</style>
+</head>
+<body>
+
+<h1>Berlin Blues BBS</h1>
+<div class="sub">So rufst du die Box mit Telnet an: macOS, Windows (PuTTY) und Linux</div>
+<p class="meta">Die Berlin Blues ist eine Mailbox mit einer Leitung, die auf einem Atari XL mit FujiNet läuft.
+Du rufst sie über das Internet mit einem <b>Telnet</b>-Programm auf <b>Port 6502</b> an. Es kann immer nur
+eine Person gleichzeitig online sein; ist die Leitung besetzt, versuch es etwas später noch einmal.
+Stand: 14.11.2026.</p>
+
+<div class="note"><b>Die Adresse.</b> In dieser Anleitung steht <code>ADRESSE</code> für die Internet-Adresse
+der Box, die du vom Sysop bekommst. Ersetze sie überall durch die echte Adresse. Der Port ist immer
+<code>6502</code>.</div>
+
+<div class="warn"><b>Telnet ist nicht sicher.</b> Telnet überträgt alles als lesbaren, unverschlüsselten Text,
+auch deinen Benutzernamen und dein Passwort. Jeder auf dem Weg dazwischen (ein öffentliches WLAN, ein
+Netzbetreiber) könnte mitlesen.
+<ul>
+  <li>Nimm für die Berlin Blues ein Passwort, das du <b>sonst nirgends</b> benutzt.</li>
+  <li>Schreib in der Box nichts, was du nicht auch auf eine Postkarte schreiben würdest.</li>
+</ul>
+<b>Warum trotzdem Telnet?</b> Die Box selbst ist ein 8-Bit-Computer: ein Atari XL mit 6502-Prozessor
+(1,79 MHz) und 64 KB Arbeitsspeicher. Verschlüsselte Verbindungen (SSH, TLS) brauchen viel mehr Rechenleistung
+und Speicher, als diese Maschine hat. Viele Anrufer kommen außerdem selbst mit 8-Bit-Rechnern (Atari, C64,
+Schneider CPC) über WLAN-Modems, und die können ebenfalls nur einfaches Telnet. Mit Telnet bleibt die Box für
+beide offen: den 8-Bit-Rechner als Host und die 8-Bit-Rechner als Anrufer, genau wie eine Mailbox 1987.</div>
+
+<h2>1. macOS</h2>
+<p>Apple hat den Befehl <code>telnet</code> mit macOS 10.13 High Sierra entfernt, aktuelle macOS-Versionen
+haben ihn also nicht mehr. Am einfachsten holst du ihn dir mit dem Paketmanager <b>Homebrew</b> zurück.</p>
+
+<h3>1.1 Terminal öffnen</h3>
+<p><i>Finder &rarr; Programme &rarr; Dienstprogramme &rarr; Terminal</i>, oder <b>&#8984; Leertaste</b>
+drücken, <code>Terminal</code> tippen und Return. Prüf zuerst, ob Telnet schon da ist:</p>
+<pre>telnet</pre>
+<p>Steht da <code>command not found: telnet</code>, geht es mit 1.2 weiter. Erscheint eine Eingabe
+<code>telnet&gt;</code>, tipp <code>quit</code> und spring zu 1.4.</p>
+
+<h3>1.2 Homebrew installieren (überspringen, wenn schon vorhanden)</h3>
+<p>Kopier diese Zeile von <b>brew.sh</b> ins Terminal und drück Return:</p>
+<pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
+<ul>
+  <li>Es fragt nach deinem Mac-Passwort (dem Anmelde-Passwort). Beim Tippen wird nichts angezeigt, das ist
+      normal.</li>
+  <li>Eventuell installiert es zuerst Apples <i>Command Line Tools</i>. Das dauert ein paar Minuten.</li>
+  <li>Am Ende zeigt es unter <b>Next steps</b> zwei oder drei Befehle an. Auf Macs mit Apple-Chip (M1 und neuer)
+      musst du sie ausführen, sonst wird der Befehl <code>brew</code> nicht gefunden. Danach das Terminal-Fenster
+      schließen und ein neues öffnen.</li>
+</ul>
+
+<h3>1.3 Telnet installieren</h3>
+<pre>brew install telnet</pre>
+
+<h3>1.4 Die Box anrufen</h3>
+<pre>telnet ADRESSE 6502</pre>
+<p>Weiter mit <b>Abschnitt 4</b> (der erste Anruf).</p>
+
+<h2>2. Windows mit PuTTY</h2>
+<p><b>PuTTY</b> ist ein kostenloses Terminalprogramm für Windows, das Telnet (und SSH) kann. Die
+Bedienoberfläche ist englisch.</p>
+
+<h3>2.1 PuTTY installieren</h3>
+<ul>
+  <li>Lade es nur von der offiziellen Seite: <b>https://www.chiark.greenend.org.uk/~sgtatham/putty/</b>
+      &rarr; <i>Download PuTTY</i> &rarr; den 64-Bit-x86-Installer (<code>.msi</code>; bei Arm-Laptops
+      <i>64-bit Arm</i>) und führ ihn aus.</li>
+  <li>Oder in einem Terminal (PowerShell): <code>winget install PuTTY.PuTTY</code></li>
+</ul>
+
+<h3>2.2 Verbindung einrichten</h3>
+<ol>
+  <li><b>PuTTY</b> im Startmenü starten. Das Fenster <i>PuTTY Configuration</i> öffnet sich auf der Seite
+      <i>Session</i>.</li>
+  <li><b>Host Name (or IP address):</b> <code>ADRESSE</code></li>
+  <li><b>Port:</b> <code>6502</code></li>
+  <li><b>Connection type:</b> <b>Telnet</b>. In neueren PuTTY-Versionen auf <i>Other</i> klicken und daneben
+      <i>Telnet</i> aus der Liste wählen. Nicht <i>Raw</i> nehmen: Dann kann die Box PuTTYs lokales Echo nicht
+      abschalten, und du siehst jede Taste doppelt.</li>
+  <li>Zum Speichern: unter <i>Saved Sessions</i> <code>Berlin Blues</code> eintippen und auf <b>Save</b> klicken.
+      Beim nächsten Mal genügt ein Doppelklick auf den Eintrag.</li>
+  <li>Auf <b>Open</b> klicken. Ein schwarzes Fenster öffnet sich; weiter mit <b>Abschnitt 4</b>.</li>
+</ol>
+<p class="meta">Die Voreinstellungen passen: 80 &times; 24 Zeichen, die Rücktaste funktioniert. Nach dem
+Abmelden schließt sich das Fenster von selbst.</p>
+
+<div class="note"><b>Ohne PuTTY:</b> Windows 10 und 11 haben noch einen eigenen Telnet-Client, er ist nur
+ausgeschaltet. <i>Systemsteuerung &rarr; Programme &rarr; Windows-Features aktivieren oder deaktivieren
+&rarr; Telnet-Client</i>, oder in einer Eingabeaufforderung als Administrator:
+<code>dism /online /Enable-Feature /FeatureName:TelnetClient</code>.
+Dann: <code>telnet ADRESSE 6502</code></div>
+
+<h2>3. Linux</h2>
+<p>Die meisten Distributionen installieren Telnet nicht von selbst, aber alle haben es als Paket. Öffne ein
+Terminal und installier es:</p>
+<table>
+  <tr><th>Distribution</th><th>Befehl</th></tr>
+  <tr><td>Debian, Ubuntu, Linux Mint, Raspberry Pi OS</td><td><code>sudo apt install telnet</code></td></tr>
+  <tr><td>Fedora, RHEL, Rocky, AlmaLinux</td><td><code>sudo dnf install telnet</code></td></tr>
+  <tr><td>openSUSE</td><td><code>sudo zypper install telnet</code></td></tr>
+  <tr><td>Arch Linux, Manjaro</td><td><code>sudo pacman -S inetutils</code></td></tr>
+</table>
+<p>Dann die Box anrufen:</p>
+<pre>telnet ADRESSE 6502</pre>
+
+<h2>4. Der erste Anruf</h2>
+<p>Was du der Reihe nach siehst:</p>
+<table>
+  <tr><th>Die Box zeigt</th><th>Bedeutung</th><th>Du tippst</th></tr>
+  <tr><td><code>BERLIN BLUES BOX - BITTE &lt;RETURN&gt; DRUECKEN</code></td><td>Return drücken</td><td>Return</td></tr>
+  <tr><td><code>1=PC/MAC 2=SCHNEIDER CPC 3=C64 ?</code></td><td>von welchem Computer rufst du an?</td><td><code>1</code> (PC, Mac oder Linux)</td></tr>
+  <tr><td><code>Gaeste bitte &lt;RETURN&gt; druecken! Username ==&gt;</code></td><td>dein Benutzername; nur Return = Gast</td><td>einen Namen (3-15 Buchstaben/Ziffern)</td></tr>
+  <tr><td><code>Dich kenne ich noch nicht. Neu eintragen (J/N)?</code></td><td>neuer Name: eintragen?</td><td><code>j</code></td></tr>
+  <tr><td><code>Neues Passwort (4-16 Zeichen) ==&gt;</code> / <code>Nochmal ==&gt;</code></td><td>Passwort wählen und wiederholen</td><td>ein Passwort, das du sonst nirgends nutzt</td></tr>
+</table>
+<ul>
+  <li>Als neuer Benutzer kannst du sofort <b>lesen</b>. <b>Schreiben</b> kannst du, sobald der Sysop dich
+      freigeschaltet hat.</li>
+  <li>In jedem Menü: <code>*</code> = Hauptmenü, <code>0</code> = <b>abmelden</b>. Bei <code>--Mehr--</code>
+      zeigt Return die nächste Seite, <code>q</code> bricht ab.</li>
+  <li>Nach 5 Minuten ohne Tastendruck legt die Box auf, damit die Leitung für den Nächsten frei wird.</li>
+  <li>Bitte immer mit <code>0</code> abmelden. Hängt die Verbindung, schließ einfach das Fenster.</li>
+</ul>
+
+<p class="meta" style="margin-top:14pt">Berlin Blues BBS &middot; Quellcode und weitere Dokumentation:
+https://github.com/joergr72idb/atari-fujinet-berlin-blues-bbs</p>
+
+</body>
+</html>
