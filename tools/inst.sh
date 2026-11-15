@@ -12,8 +12,11 @@ esac
 fn() { for p in $(pgrep -x fujinet); do [ "$(readlink /proc/$p/cwd)" = "$dir" ] && echo $p; done; }
 # the tools/run-fujinet loop around it (stopped first, else it would restart FujiNet-PC)
 loop() { for p in $(pgrep -f '[r]un-fujinet'); do [ "$(readlink /proc/$p/cwd)" = "$dir" ] && echo $p; done; }
+# only atari800s started in this repo (make run, tools/emu.sh): others, e.g. a development kit's on
+# another NetSIO port, are not ours
 a8() {
   for p in $(pgrep -x atari800); do
+    [ "$(readlink /proc/$p/cwd)" = "$PWD" ] || continue
     if tr '\0' ' ' < /proc/$p/cmdline | grep -q -- '-netsio 9998'; then t=test; else t=live; fi
     [ $t = "$1" ] && echo $p
   done
