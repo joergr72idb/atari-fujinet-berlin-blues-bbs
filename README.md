@@ -2,7 +2,8 @@
 
 A revival of the **Berlin-Blues-Box**, the 1987 mailbox of the Atari-Club Celle, as a single-line BBS on an
 **Atari XL with FujiNet**. Callers dial in via **telnet** (default port 6502) from a PC, Mac or phone, or from an
-Atari 8-bit, C64 or Schneider CPC. **How to call it** from macOS, Windows (PuTTY) or Linux:
+Atari 8-bit, C64 or Schneider CPC (with the M4 board: [cpc-telnet](https://github.com/joergr72idb/cpc-telnet)).
+**How to call it** from macOS, Windows (PuTTY) or Linux:
 [`docs/guide/calling-guide.pdf`](docs/guide/calling-guide.pdf) (auf Deutsch:
 [`calling-guide-de.pdf`](docs/guide/calling-guide-de.pdf)).
 
@@ -149,6 +150,8 @@ agree on special characters.
   German version: [`docs/guide/calling-guide-de.pdf`](docs/guide/calling-guide-de.pdf)
 - [`docs/guide/setup-guide.pdf`](docs/guide/setup-guide.pdf) – setup and build guide: cc65, fujinet-lib,
   atari800 + FujiNet-PC, Altirra + FujiNet, building `bbs.xex`, customizing
+- [cpc-telnet](https://github.com/joergr72idb/cpc-telnet) – a telnet client for the Schneider CPC with the
+  M4 board, made for this BBS: 40 or 80 columns, writes the session to a text file
 - [`docs/pap/pap.pdf`](docs/pap/pap.pdf) – program flowcharts (PAP, DIN 66001): main loop, call, login,
   menu navigation, key input + sysop console
 - [`CLAUDE.md`](CLAUDE.md) – notes for working on the code
