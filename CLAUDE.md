@@ -30,6 +30,9 @@ Toolchain/dev loop: ../atari-dev (README + CLAUDE.md there).
   SD `build/testsd`, XEXs from `make test` in `build/test/` (`-DBBS_PORT=6503`). Never `pkill -x fujinet|atari800` –
   use `tools/inst.sh live|test fujinet|atari800|stop`. It counts only atari800s started in this repo (cwd), live/test by NetSIO 9998 -
   a development kit's atari800 on another port is not touched (2026-11-15). FujiNet-PC must run via `tools/run-fujinet` (restarts on every exit except SIGTERM/INT/KILL; upstream one only on 75).
+- Altirra next to the live BBS: `ALTIRRA=1 tools/emu.sh build/test/bbs.xex` (test FujiNet-PC + netsiohub TCP 9996/UDP 9998
+  + Altirra under Wine; tested 2026-11-16, call on 6503 answered). Stop: close Altirra, `tools/inst.sh test stop` (ends the
+  hub with `--netsio-port 9998` only). Setup guide section 7.
 - All tests: `tools/test_all.sh` (fresh data each). Single: `tools/emu.sh build/test/bbs.xex` (always fresh FujiNet-PC – it crashes on reboot with an open
   listener), then `cd tools && python3 test_phase{1,2,3}.py` (2-5 need fresh data in `build/testsd/bbs`: delete `{users,stats,lastread}.dat`,
   `b*`, `p*`, write `sysop.txt` = `geheim1` – test_all.sh does this) (module `bbstest.py`: Call.expect/send/page_until, petscii()).

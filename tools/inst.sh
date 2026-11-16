@@ -26,6 +26,8 @@ case "$2" in
   atari800) a8 "$1" ;;
   stop)
     l=$(loop); [ -n "$l" ] && kill $l 2>/dev/null
+    # test only: the netsiohub of ALTIRRA=1 tools/emu.sh (the one on UDP 9998, never another)
+    [ "$1" = test ] && pkill -f "python3 -m [n]etsiohub --netsio-port 9998" 2>/dev/null
     pids="$(fn) $(a8 "$1")"
     [ -n "${pids# }" ] || exit 0
     kill $pids 2>/dev/null

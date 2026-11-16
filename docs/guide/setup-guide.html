@@ -35,7 +35,7 @@
 building <code>bbs.xex</code>, customizing</div>
 <p class="meta">Atari XL/XE + FujiNet, single-line telnet BBS (port 6502). Linux host (tested on Ubuntu).
 Versions as used: cc65 V2.19 (git), fujinet-lib 5.1.0, atari800 7.2.1, FujiNet-PC v1.6, Altirra 4.40.
-Program flow: <code>docs/pap/pap.pdf</code>. Internals: <code>docs/TECHNICAL.md</code>. As of 2026-11-05.</p>
+Program flow: <code>docs/pap/pap.pdf</code>. Internals: <code>docs/TECHNICAL.md</code>. As of 2026-11-16.</p>
 
 <h3>Contents</h3>
 <ol class="toc">
@@ -175,13 +175,25 @@ and reaches FujiNet-PC through a custom device plus the <b>netsiohub</b>:</p>
 <p>Symbols from <code>.lbl</code>/<code>.dbg</code> load automatically; breakpoints like <code>bp `main.c:24`</code> work.
 <code>make altirra-test</code> runs a program for 45 s and prints its text screen (debugger script dumps screen RAM).</p>
 <h3>Running the BBS in Altirra</h3>
-<pre>cd blues-bbs && make                               # build/bbs.xex (+ .lbl/.dbg)
-cd ../atari-dev && make hub                        # netsiohub on TCP 9996
-(cd ../blues-bbs && make fujinet)                  # FujiNet-PC with the BBS SD folder
-tools/altirra.sh ../blues-bbs/build/bbs.xex        # Altirra, debugger open</pre>
-<div class="warn"><b>Not tested with the BBS so far</b> (only the atari-dev sample). Run only <b>one</b> emulator at a time on
-one FujiNet-PC: netsiohub and atari800 both use UDP 9997 (<code>make run</code> stops the hub automatically).
-Never do this on the machine where the live BBS is running - use a separate box or stop the live BBS first.</div>
+<p>Tested 2026-11-16 (Altirra 4.40 under Wine): the BBS starts, opens its listener and answers calls.
+Only <b>one</b> emulator per FujiNet-PC: netsiohub takes the emulator's place on the NetSIO port.</p>
+<p><b>Next to the live BBS</b> (same machine): use the test instance - its own FujiNet-PC
+(<code>build/fujinet-test</code>, SD <code>build/testsd</code>, NetSIO 9998, web UI 8001) and a test build listening on
+port 6503. <code>tools/emu.sh</code> starts netsiohub on UDP 9998 instead of 9997, so the live BBS (6502/8000/9997)
+is not touched:</p>
+<pre>cd blues-bbs && make test                  # build/test/bbs.xex, port 6503
+ALTIRRA=1 tools/emu.sh build/test/bbs.xex  # FujiNet-PC, hub 9996/9998, Altirra
+telnet 127.0.0.1 6503                      # BERLIN BLUES BOX - BITTE &lt;RETURN&gt; ...
+# close Altirra, then:
+tools/inst.sh test stop                    # test FujiNet-PC + its netsiohub</pre>
+<p><b>On a machine without the live BBS</b> (with your BBS data in <code>sd/</code>, port 6502):</p>
+<pre>cd blues-bbs && make                       # build/bbs.xex + .lbl/.dbg
+cd ../atari-dev && make hub                # netsiohub: TCP 9996 / UDP 9997
+(cd ../blues-bbs && make fujinet)          # FujiNet-PC with the BBS SD folder
+tools/altirra.sh ../blues-bbs/build/bbs.xex   # Altirra, debugger open</pre>
+<div class="warn">Never run the second variant where the live BBS runs: <code>make fujinet</code> there is the live
+FujiNet-PC and the hub wants UDP 9997, which the live atari800 holds. Symbols: only <code>make</code> writes
+<code>build/bbs.lbl</code>/<code>.dbg</code> - the test build has none, so the debugger shows addresses only.</div>
 
 <h2>8. Atari ROMs</h2>
 <p>Atari's OS and BASIC ROMs are copyrighted and <b>not</b> in the repositories. Two options:</p>
